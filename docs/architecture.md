@@ -44,4 +44,9 @@ The runtime now supports two repository drivers:
 - `PERSISTENCE_DRIVER=memory`: default local mode, fastest for UI and WebSocket development.
 - `PERSISTENCE_DRIVER=prisma`: MySQL-backed videos, cache jobs, rooms, members, and reference player state.
 
-Redis configuration is present for the next step: moving online presence and Socket.IO fan-out state out of a single API process. Socket.IO can then use the Redis adapter when multiple API instances are deployed.
+Socket.IO supports two adapter modes:
+
+- `SOCKET_ADAPTER=memory`: default single API instance mode.
+- `SOCKET_ADAPTER=redis`: uses Redis pub/sub so multiple API instances can broadcast room events consistently.
+
+Redis-backed online presence is still a separate next step; current room membership remains in the selected repository driver.

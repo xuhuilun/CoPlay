@@ -8,6 +8,7 @@ import { registerCacheJobRoutes } from "./modules/cache-jobs/cache-job.routes.js
 import type { CacheJobStore } from "./modules/cache-jobs/cache-job.store.js";
 import { PrismaCacheJobRepository } from "./modules/cache-jobs/prisma-cache-job.repository.js";
 import { registerRealtimeGateway } from "./modules/realtime/realtime.gateway.js";
+import { registerRedisSocketAdapter } from "./modules/realtime/redis-socket-adapter.js";
 import { PrismaRoomRepository } from "./modules/rooms/prisma-room.repository.js";
 import { RoomRepository } from "./modules/rooms/room.repository.js";
 import { registerRoomRoutes } from "./modules/rooms/room.routes.js";
@@ -52,9 +53,19 @@ await registerVideoRoutes(app, videos);
 await registerCacheJobRoutes(app, cacheJobs);
 await registerRoomRoutes(app, rooms, videos);
 
-registerRealtimeGateway(app.server, rooms, config.webOrigin);
+const io = registerRealtimeGateway(app.server, rooms, config.webOrigin);
+let closeRedisSocketAdapter: (() => Promise<void>) | undefined;
+
+if (config.socketAdapter === "redis") {
+  if (!config.redisUrl) {
+    throw new Error("REDIS_URL is required when SOCKET_ADAPTER=redis");
+  }
+  closeRedisSocketAdapter = await registerRedisSocketAdapter(io, config.redisUrl);
+  app.log.info("Socket.IO Redis adapter enabled");
+}
 
 app.addHook("onClose", async () => {
+  await closeRedisSocketAdapter?.();
   await prisma?.$disconnect();
 });
 

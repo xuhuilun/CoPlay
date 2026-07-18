@@ -15,6 +15,11 @@
 3. Add Socket.IO Redis adapter for horizontal scaling.
 4. Add migrations and seed scripts.
 
+Progress:
+
+- Prisma/MySQL repositories are available behind `PERSISTENCE_DRIVER=prisma`.
+- Socket.IO Redis fan-out is available behind `SOCKET_ADAPTER=redis`.
+
 ## Phase 3: Production Integrations
 
 1. Connect real Bilibili download task workers.

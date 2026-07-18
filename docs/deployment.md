@@ -47,6 +47,15 @@ DATABASE_URL=mysql://coplay:coplay_password@mysql:3306/coplay
 
 The default remains `PERSISTENCE_DRIVER=memory` so local development still works without a running database.
 
+To run multiple API instances behind Nginx, enable the Socket.IO Redis adapter:
+
+```bash
+SOCKET_ADAPTER=redis
+REDIS_URL=redis://redis:6379
+```
+
+Keep `SOCKET_ADAPTER=memory` for single-instance development.
+
 Docker:
 
 ```bash
