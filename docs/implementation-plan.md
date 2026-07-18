@@ -24,6 +24,7 @@ Progress:
 - Cache job progress can be pushed through WebSocket while HTTP polling remains as a fallback.
 - API exposes liveness and readiness endpoints for deployment health checks.
 - API has baseline HTTP security headers and global rate limiting.
+- Backend policy tests cover room synchronization rules and memory presence counting.
 
 ## Phase 3: Production Integrations
 

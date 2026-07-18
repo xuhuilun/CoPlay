@@ -7,7 +7,8 @@
     "dev": "npm run dev -w apps/api & npm run dev -w apps/web",
     "build": "npm run build -w apps/api && npm run build -w apps/web",
     "typecheck": "npm run typecheck -w apps/api && npm run typecheck -w apps/web",
-    "lint": "npm run lint -w apps/api && npm run lint -w apps/web"
+    "lint": "npm run lint -w apps/api && npm run lint -w apps/web",
+    "test": "npm run test -w apps/api"
   },
   "workspaces": [
     "apps/api",
