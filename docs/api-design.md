@@ -42,6 +42,8 @@ Namespace: default Socket.IO namespace.
 }
 ```
 
+`video:switch-event` carries the new reference `PlayerState`. Clients must load `videoId` from the video API before applying playback state.
+
 ## Invite Message
 
 The web client generates the invite text from the current full URL:

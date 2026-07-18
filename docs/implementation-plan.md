@@ -20,6 +20,7 @@ Progress:
 - Prisma/MySQL repositories are available behind `PERSISTENCE_DRIVER=prisma`.
 - Socket.IO Redis fan-out is available behind `SOCKET_ADAPTER=redis`.
 - Online room presence is separated from durable room membership and can use Redis in multi-instance mode.
+- Room hosts can switch videos from the room sidebar; clients load the new source before applying reference state.
 
 ## Phase 3: Production Integrations
 

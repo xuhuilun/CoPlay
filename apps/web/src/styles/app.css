@@ -499,11 +499,42 @@ main {
 }
 
 .status-strip,
-.member-row {
+.member-row,
+.video-switcher {
   border: 1px solid var(--line);
   border-radius: 8px;
   background: rgba(255, 255, 255, 0.07);
   padding: 13px 14px;
+}
+
+.video-switcher {
+  display: grid;
+  gap: 10px;
+}
+
+.video-switcher label {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.video-switcher div {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 44px;
+  gap: 8px;
+}
+
+.video-switcher select,
+.video-switcher button {
+  min-height: 42px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text);
+}
+
+.video-switcher select {
+  width: 100%;
+  padding: 0 10px;
 }
 
 .member-list {

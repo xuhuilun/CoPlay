@@ -1,4 +1,4 @@
-import { Copy, Gauge, Maximize, Pause, Play, RefreshCcw, Volume2 } from "lucide-react";
+import { Clapperboard, Copy, Gauge, Maximize, Pause, Play, RefreshCcw, Volume2 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
 import { io, type Socket } from "socket.io-client";
@@ -17,10 +17,14 @@ export function RoomPage() {
   const { roomId } = useParams();
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const socketRef = useRef<Socket | null>(null);
+  const currentVideoIdRef = useRef<string | null>(null);
+  const pendingPlayerStateRef = useRef<PlayerState | null>(null);
   const guestId = useMemo(() => getGuestId(), []);
   const nickname = useMemo(() => getNickname(), []);
   const [room, setRoom] = useState<Room | null>(null);
   const [video, setVideo] = useState<Video | null>(null);
+  const [libraryVideos, setLibraryVideos] = useState<Video[]>([]);
+  const [switchVideoId, setSwitchVideoId] = useState("");
   const [members, setMembers] = useState<RoomMember[]>([]);
   const [onlineGuestIds, setOnlineGuestIds] = useState<string[]>([]);
   const [notice, setNotice] = useState("同步状态待连接");
@@ -36,6 +40,14 @@ export function RoomPage() {
       api.video(joined.videoId).then(setVideo);
     });
   }, [guestId, nickname, roomId]);
+
+  useEffect(() => {
+    currentVideoIdRef.current = video?.id ?? null;
+  }, [video]);
+
+  useEffect(() => {
+    api.videos().then((data) => setLibraryVideos(data.items));
+  }, []);
 
   useEffect(() => {
     if (!roomId || !room) {
@@ -54,17 +66,19 @@ export function RoomPage() {
       setMembers(payload.members);
       setOnlineGuestIds(payload.onlineGuestIds);
     });
-    socket.on("player:sync-state", applyPlayerState);
+    socket.on("player:sync-state", (state: PlayerState) => {
+      void handleIncomingPlayerState(state);
+    });
     socket.on("player:event", (payload: { referenceState: PlayerState; action: string }) => {
       if (payload.referenceState.updatedBy === guestId) {
         return;
       }
-      applyPlayerState(payload.referenceState);
+      void handleIncomingPlayerState(payload.referenceState);
       setNotice(payload.action === "sync-progress" ? "已同步对方进度" : "收到房间播放事件");
     });
     socket.on("video:switch-event", (state: PlayerState) => {
-      setNotice("房主切换了视频，已准备同步");
-      applyPlayerState(state);
+      void handleIncomingPlayerState(state);
+      setNotice("房主切换了视频，已加载新片源");
     });
     socket.on("room:error", (payload: { message: string }) => setNotice(payload.message));
 
@@ -72,6 +86,17 @@ export function RoomPage() {
       socket.disconnect();
     };
   }, [guestId, nickname, room, roomId]);
+
+  async function handleIncomingPlayerState(state: PlayerState) {
+    if (state.videoId !== currentVideoIdRef.current) {
+      pendingPlayerStateRef.current = state;
+      const nextVideo = await api.video(state.videoId);
+      setVideo(nextVideo);
+      setRoom((current) => current ? { ...current, videoId: state.videoId, playerState: state } : current);
+      return;
+    }
+    applyPlayerState(state);
+  }
 
   function applyPlayerState(state: PlayerState) {
     const player = videoRef.current;
@@ -116,6 +141,22 @@ export function RoomPage() {
     setNotice(room?.type === "couple" ? "正在同步对方进度" : "正在同步到房主");
   }
 
+  function switchRoomVideo() {
+    if (!roomId || !switchVideoId || switchVideoId === video?.id) {
+      return;
+    }
+    socketRef.current?.emit("video:switch", { roomId, guestId, videoId: switchVideoId });
+  }
+
+  function applyPendingPlayerState() {
+    const pending = pendingPlayerStateRef.current;
+    if (!pending) {
+      return;
+    }
+    pendingPlayerStateRef.current = null;
+    applyPlayerState(pending);
+  }
+
   const isHost = room?.hostGuestId === guestId;
 
   if (!room || !video) {
@@ -132,6 +173,7 @@ export function RoomPage() {
           onPlay={() => emitPlayerAction("play")}
           onPause={() => emitPlayerAction("pause")}
           onSeeked={() => emitPlayerAction("seek")}
+          onLoadedMetadata={applyPendingPlayerState}
           controls={false}
         />
         <div className="player-controls">
@@ -179,6 +221,28 @@ export function RoomPage() {
           <Copy size={18} />
           {copied ? "已复制邀请" : "邀请好友"}
         </button>
+        {isHost && (
+          <div className="video-switcher">
+            <label htmlFor="switch-video">切换影片</label>
+            <div>
+              <select
+                id="switch-video"
+                value={switchVideoId}
+                onChange={(event) => setSwitchVideoId(event.target.value)}
+              >
+                <option value="">选择视频库影片</option>
+                {libraryVideos.map((item) => (
+                  <option key={item.id} value={item.id} disabled={item.id === video.id}>
+                    {item.title}
+                  </option>
+                ))}
+              </select>
+              <button onClick={switchRoomVideo} type="button" title="切换影片">
+                <Clapperboard size={18} />
+              </button>
+            </div>
+          </div>
+        )}
         <div className="status-strip">{notice}</div>
         <div className="member-list">
           <h2>
