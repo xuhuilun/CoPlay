@@ -1,0 +1,104 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+enum VideoSource {
+  bilibili
+  library
+}
+
+enum CacheJobStatus {
+  queued
+  downloading
+  uploading
+  completed
+  failed
+}
+
+enum RoomType {
+  couple
+  screening
+}
+
+enum RoomRole {
+  host
+  member
+}
+
+model Video {
+  id              String      @id @default(cuid())
+  title           String      @unique @db.VarChar(180)
+  description     String      @db.Text
+  source          VideoSource
+  sourceUrl       String      @db.VarChar(512)
+  cdnUrl          String      @db.VarChar(512)
+  posterUrl       String      @db.VarChar(512)
+  durationSeconds Int
+  tagsJson        Json
+  hotScore        Int         @default(0)
+  cachedAt        DateTime    @default(now())
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  cacheJobs CacheJob[]
+  rooms     Room[]
+
+  @@index([hotScore])
+  @@index([cachedAt])
+}
+
+model CacheJob {
+  id        String         @id @default(cuid())
+  sourceUrl String         @db.VarChar(512)
+  status    CacheJobStatus @default(queued)
+  progress  Int            @default(0)
+  message   String         @db.VarChar(255)
+  videoId   String?
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+
+  video Video? @relation(fields: [videoId], references: [id], onDelete: SetNull)
+
+  @@index([status])
+  @@index([createdAt])
+}
+
+model Room {
+  id             String   @id @default(cuid())
+  type           RoomType
+  videoId        String
+  hostGuestId    String   @db.VarChar(80)
+  maxMembers     Int
+  currentTime    Float    @default(0)
+  paused         Boolean  @default(true)
+  playbackRate   Float    @default(1)
+  stateUpdatedBy String   @db.VarChar(80)
+  stateUpdatedAt DateTime @default(now())
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  video   Video        @relation(fields: [videoId], references: [id], onDelete: Restrict)
+  members RoomMember[]
+
+  @@index([videoId])
+  @@index([hostGuestId])
+}
+
+model RoomMember {
+  id       String   @id @default(cuid())
+  roomId   String
+  guestId  String   @db.VarChar(80)
+  nickname String   @db.VarChar(80)
+  role     RoomRole
+  joinedAt DateTime @default(now())
+
+  room Room @relation(fields: [roomId], references: [id], onDelete: Cascade)
+
+  @@unique([roomId, guestId])
+  @@index([guestId])
+}

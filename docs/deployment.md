@@ -26,8 +26,16 @@ Docker Compose starts:
 
 ```bash
 npm install
+npm run prisma:generate -w apps/api
 npm run dev -w apps/api
 npm run dev -w apps/web
+```
+
+Database setup:
+
+```bash
+npm run prisma:migrate -w apps/api
+npm run db:seed -w apps/api
 ```
 
 Docker:

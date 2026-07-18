@@ -42,9 +42,9 @@ export function HomePage() {
       <div className="hero-panel">
         <div className="hero-copy">
           <span className="eyebrow">bilisync.top ready</span>
-          <h1>把异地观影变成同一个控制台。</h1>
+          <h1>有人陪伴就是幸福</h1>
           <p>
-            缓存 B 站视频到 CDN，创建情侣房间或放映厅，用弱同步和一键对齐保留观看自由。
+            异地观影，远程同步，尽在CoPlay！
           </p>
           <form className="searchbar" onSubmit={submitSearch}>
             <Search size={18} />

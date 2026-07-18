@@ -28,6 +28,7 @@ services:
       MYSQL_DATABASE: coplay
       MYSQL_USER: coplay
       MYSQL_PASSWORD: coplay_password
+      DATABASE_URL: mysql://coplay:coplay_password@mysql:3306/coplay
       REDIS_URL: redis://redis:6379
       CDN_BASE_URL: https://cdn.bilisync.top
     depends_on:

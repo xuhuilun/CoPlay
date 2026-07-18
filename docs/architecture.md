@@ -39,4 +39,4 @@ CoPlay is a front-end/back-end separated synchronized video watching platform. T
 
 ## Scaling Path
 
-The MVP uses in-process repositories to keep local development fast. The module interfaces isolate persistence so MySQL and Redis can replace the stores without changing controllers or UI contracts. Socket.IO can use the Redis adapter when multiple API instances are deployed.
+The current runtime still keeps MVP repositories in process for fast local development. Prisma/MySQL schema and Redis configuration are now present as the persistence foundation. The next implementation step is replacing repository internals with Prisma and moving online room state to Redis without changing REST or WebSocket contracts. Socket.IO can then use the Redis adapter when multiple API instances are deployed.
