@@ -1,7 +1,7 @@
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
-import type { VideoRepository } from "../videos/video.repository.js";
-import type { RoomRepository } from "./room.repository.js";
+import type { VideoStore } from "../videos/video.store.js";
+import type { RoomStore } from "./room.store.js";
 
 const createRoomSchema = z.object({
   videoId: z.string().min(1),
@@ -18,22 +18,22 @@ const joinRoomSchema = z.object({
 
 export async function registerRoomRoutes(
   app: FastifyInstance,
-  rooms: RoomRepository,
-  videos: VideoRepository
+  rooms: RoomStore,
+  videos: VideoStore
 ) {
   app.post("/api/rooms", async (request, reply) => {
     const parsed = createRoomSchema.safeParse(request.body);
     if (!parsed.success) {
       return reply.badRequest("Invalid room payload");
     }
-    if (!videos.findById(parsed.data.videoId)) {
+    if (!(await videos.findById(parsed.data.videoId))) {
       return reply.notFound("Video not found");
     }
-    return reply.code(201).send(rooms.create(parsed.data));
+    return reply.code(201).send(await rooms.create(parsed.data));
   });
 
   app.get<{ Params: { id: string } }>("/api/rooms/:id", async (request, reply) => {
-    const room = rooms.findById(request.params.id);
+    const room = await rooms.findById(request.params.id);
     if (!room) {
       return reply.notFound("Room not found");
     }
@@ -46,7 +46,7 @@ export async function registerRoomRoutes(
       return reply.badRequest("Invalid join payload");
     }
     try {
-      const room = rooms.join(request.params.id, parsed.data.guestId, parsed.data.nickname);
+      const room = await rooms.join(request.params.id, parsed.data.guestId, parsed.data.nickname);
       if (!room) {
         return reply.notFound("Room not found");
       }

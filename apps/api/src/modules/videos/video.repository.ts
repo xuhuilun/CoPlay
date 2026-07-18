@@ -1,10 +1,11 @@
 import { createId } from "../../shared/id.js";
 import type { Video } from "./video.model.js";
+import type { CacheVideoInput, VideoStore } from "./video.store.js";
 
 const sampleVideoUrl =
   "https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4";
 
-export class VideoRepository {
+export class VideoRepository implements VideoStore {
   private readonly videos = new Map<string, Video>();
 
   constructor() {
@@ -56,14 +57,7 @@ export class VideoRepository {
     return this.videos.get(id);
   }
 
-  addFromCache(input: {
-    title: string;
-    description: string;
-    posterUrl: string;
-    tags: string[];
-    hotScore?: number;
-    sourceUrl?: string;
-  }): Video {
+  addFromCache(input: CacheVideoInput): Video {
     const video: Video = {
       id: createId("vid"),
       title: input.title,

@@ -38,6 +38,15 @@ npm run prisma:migrate -w apps/api
 npm run db:seed -w apps/api
 ```
 
+To run the API against MySQL, set:
+
+```bash
+PERSISTENCE_DRIVER=prisma
+DATABASE_URL=mysql://coplay:coplay_password@mysql:3306/coplay
+```
+
+The default remains `PERSISTENCE_DRIVER=memory` so local development still works without a running database.
+
 Docker:
 
 ```bash

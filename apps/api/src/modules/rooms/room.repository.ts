@@ -1,16 +1,11 @@
 import { createId } from "../../shared/id.js";
-import type { Room, RoomMember, RoomType } from "./room.model.js";
+import type { Room, RoomMember } from "./room.model.js";
+import type { CreateRoomInput, RoomStore, UpdatePlayerStateInput } from "./room.store.js";
 
-export class RoomRepository {
+export class RoomRepository implements RoomStore {
   private readonly rooms = new Map<string, Room>();
 
-  create(input: {
-    type: RoomType;
-    videoId: string;
-    ownerGuestId: string;
-    ownerNickname: string;
-    maxMembers: number;
-  }): Room {
+  create(input: CreateRoomInput): Room {
     const now = new Date().toISOString();
     const maxMembers = input.type === "couple" ? 2 : Math.max(2, Math.min(input.maxMembers, 100));
     const host: RoomMember = {
@@ -65,7 +60,7 @@ export class RoomRepository {
 
   updatePlayerState(
     roomId: string,
-    input: { guestId: string; currentTime: number; paused: boolean; playbackRate: number }
+    input: UpdatePlayerStateInput
   ): Room | undefined {
     const room = this.rooms.get(roomId);
     if (!room) {

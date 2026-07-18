@@ -31,6 +31,7 @@ services:
       DATABASE_URL: mysql://coplay:coplay_password@mysql:3306/coplay
       REDIS_URL: redis://redis:6379
       CDN_BASE_URL: https://cdn.bilisync.top
+      PERSISTENCE_DRIVER: memory
     depends_on:
       - mysql
       - redis

@@ -2,7 +2,7 @@
 
 ## Purpose
 
-This document records the durable MySQL model used by CoPlay. The MVP runtime can still use in-memory repositories, but the schema is ready for replacing repository internals with Prisma.
+This document records the durable MySQL model used by CoPlay. Runtime repositories can use either the default in-memory mode or Prisma/MySQL mode through `PERSISTENCE_DRIVER`.
 
 ## Tables
 

@@ -1,14 +1,15 @@
 import { createId } from "../../shared/id.js";
-import type { VideoRepository } from "../videos/video.repository.js";
+import type { VideoStore } from "../videos/video.store.js";
 import type { CacheJob } from "./cache-job.model.js";
+import type { CacheJobStore } from "./cache-job.store.js";
 
 const posterUrl =
   "https://images.unsplash.com/photo-1517604931442-7e0c8ed2963c?auto=format&fit=crop&w=1200&q=80";
 
-export class CacheJobRepository {
+export class CacheJobRepository implements CacheJobStore {
   private readonly jobs = new Map<string, CacheJob>();
 
-  constructor(private readonly videos: VideoRepository) {}
+  constructor(private readonly videos: VideoStore) {}
 
   create(sourceUrl: string): CacheJob {
     const now = new Date().toISOString();
@@ -39,7 +40,7 @@ export class CacheJobRepository {
     ];
 
     steps.forEach((step, index) => {
-      setTimeout(() => {
+      setTimeout(async () => {
         const job = this.jobs.get(id);
         if (!job || job.status === "completed") {
           return;
@@ -50,8 +51,8 @@ export class CacheJobRepository {
           updatedAt: new Date().toISOString()
         };
         if (step.status === "completed") {
-          const video = this.videos.addFromCache({
-            title: "B站缓存视频",
+          const video = await this.videos.addFromCache({
+            title: `B站缓存视频 ${id.slice(-6)}`,
             description: "由用户提交链接后缓存到 CDN 的视频。",
             posterUrl,
             tags: ["bilibili", "cached"],
