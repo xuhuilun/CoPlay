@@ -29,6 +29,10 @@ export function RoomPage() {
   const [onlineGuestIds, setOnlineGuestIds] = useState<string[]>([]);
   const [notice, setNotice] = useState("同步状态待连接");
   const [copied, setCopied] = useState(false);
+  const [isPaused, setIsPaused] = useState(true);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [duration, setDuration] = useState(0);
+  const [volume, setVolume] = useState(1);
 
   useEffect(() => {
     if (!roomId) {
@@ -112,6 +116,8 @@ export function RoomPage() {
     } else {
       void player.play();
     }
+    setIsPaused(state.paused);
+    setCurrentTime(state.currentTime);
   }
 
   function emitPlayerAction(action: "play" | "pause" | "seek" | "sync-progress") {
@@ -157,6 +163,37 @@ export function RoomPage() {
     applyPlayerState(pending);
   }
 
+  function togglePlayback() {
+    const player = videoRef.current;
+    if (!player) {
+      return;
+    }
+    if (player.paused) {
+      void player.play();
+    } else {
+      player.pause();
+    }
+  }
+
+  function seekTo(value: number) {
+    const player = videoRef.current;
+    if (!player) {
+      return;
+    }
+    player.currentTime = value;
+    setCurrentTime(value);
+    emitPlayerAction("seek");
+  }
+
+  function setPlayerVolume(value: number) {
+    const player = videoRef.current;
+    if (!player) {
+      return;
+    }
+    player.volume = value;
+    setVolume(value);
+  }
+
   const isHost = room?.hostGuestId === guestId;
 
   if (!room || !video) {
@@ -170,44 +207,84 @@ export function RoomPage() {
           ref={videoRef}
           poster={video.posterUrl}
           src={video.cdnUrl}
-          onPlay={() => emitPlayerAction("play")}
-          onPause={() => emitPlayerAction("pause")}
+          onPlay={() => {
+            setIsPaused(false);
+            emitPlayerAction("play");
+          }}
+          onPause={() => {
+            setIsPaused(true);
+            emitPlayerAction("pause");
+          }}
           onSeeked={() => emitPlayerAction("seek")}
-          onLoadedMetadata={applyPendingPlayerState}
+          onTimeUpdate={(event) => setCurrentTime(event.currentTarget.currentTime)}
+          onLoadedMetadata={(event) => {
+            setDuration(event.currentTarget.duration || 0);
+            setVolume(event.currentTarget.volume);
+            applyPendingPlayerState();
+          }}
           controls={false}
         />
         <div className="player-controls">
-          <button onClick={() => videoRef.current?.paused ? void videoRef.current.play() : videoRef.current?.pause()} title="播放/暂停">
-            {videoRef.current?.paused ? <Play size={19} /> : <Pause size={19} />}
-          </button>
-          <button onClick={syncToReference} title={room.type === "couple" ? "同步进度" : "同步到房主"}>
-            <RefreshCcw size={18} />
-          </button>
-          <button onClick={() => emitPlayerAction("sync-progress")} title="广播当前进度">
-            <Gauge size={18} />
-          </button>
-          <button onClick={() => (videoRef.current!.volume = Math.max(0, videoRef.current!.volume - 0.15))} title="降低音量">
-            <Volume2 size={18} />
-          </button>
-          <select
-            aria-label="倍速"
-            defaultValue="1"
-            onChange={(event) => {
-              if (videoRef.current) {
-                videoRef.current.playbackRate = Number(event.target.value);
-                emitPlayerAction("sync-progress");
-              }
-            }}
-          >
-            <option value="0.75">0.75x</option>
-            <option value="1">1x</option>
-            <option value="1.25">1.25x</option>
-            <option value="1.5">1.5x</option>
-            <option value="2">2x</option>
-          </select>
-          <button onClick={() => void videoRef.current?.requestFullscreen()} title="全屏">
-            <Maximize size={18} />
-          </button>
+          <div className="timeline-row">
+            <span>{formatTime(currentTime)}</span>
+            <input
+              aria-label="进度"
+              type="range"
+              min={0}
+              max={duration || 0}
+              step={0.1}
+              value={Math.min(currentTime, duration || currentTime)}
+              onChange={(event) => seekTo(Number(event.target.value))}
+            />
+            <span>{formatTime(duration)}</span>
+          </div>
+          <div className="control-row">
+            <button onClick={togglePlayback} title="播放/暂停">
+              {isPaused ? <Play size={19} /> : <Pause size={19} />}
+            </button>
+            <button onClick={syncToReference} title={room.type === "couple" ? "同步进度" : "同步到房主"}>
+              <RefreshCcw size={18} />
+            </button>
+            <button onClick={() => emitPlayerAction("sync-progress")} title="广播当前进度">
+              <Gauge size={18} />
+            </button>
+            <label className="volume-control">
+              <Volume2 size={18} />
+              <input
+                aria-label="音量"
+                type="range"
+                min={0}
+                max={1}
+                step={0.01}
+                value={volume}
+                onChange={(event) => setPlayerVolume(Number(event.target.value))}
+              />
+            </label>
+            <select aria-label="清晰度" defaultValue="auto">
+              <option value="auto">Auto</option>
+              <option value="1080p">1080p</option>
+              <option value="720p">720p</option>
+            </select>
+            <select
+              aria-label="倍速"
+              defaultValue="1"
+              onChange={(event) => {
+                if (videoRef.current) {
+                  videoRef.current.playbackRate = Number(event.target.value);
+                  emitPlayerAction("sync-progress");
+                }
+              }}
+            >
+              <option value="0.75">0.75x</option>
+              <option value="1">1x</option>
+              <option value="1.25">1.25x</option>
+              <option value="1.5">1.5x</option>
+              <option value="2">2x</option>
+            </select>
+            <button onClick={() => void videoRef.current?.requestFullscreen()} title="全屏">
+              <Maximize size={18} />
+            </button>
+          </div>
         </div>
       </div>
 
@@ -261,4 +338,13 @@ export function RoomPage() {
       </aside>
     </section>
   );
+}
+
+function formatTime(value: number): string {
+  if (!Number.isFinite(value) || value <= 0) {
+    return "0:00";
+  }
+  const minutes = Math.floor(value / 60);
+  const seconds = Math.floor(value % 60).toString().padStart(2, "0");
+  return `${minutes}:${seconds}`;
 }

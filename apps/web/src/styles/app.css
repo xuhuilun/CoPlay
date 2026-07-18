@@ -452,10 +452,10 @@ main {
   left: 18px;
   right: 18px;
   bottom: 18px;
-  display: flex;
-  align-items: center;
+  display: grid;
+  grid-template-columns: 1fr;
   gap: 9px;
-  padding: 10px;
+  padding: 12px;
   border: 1px solid var(--line);
   border-radius: 8px;
   background: rgba(8, 9, 11, 0.72);
@@ -463,6 +463,28 @@ main {
   transform: translateY(12px);
   transition: opacity 180ms ease, transform 180ms ease;
   backdrop-filter: blur(20px);
+}
+
+.timeline-row,
+.control-row,
+.volume-control {
+  display: flex;
+  align-items: center;
+}
+
+.timeline-row {
+  gap: 10px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.timeline-row input {
+  flex: 1;
+  min-width: 0;
+}
+
+.control-row {
+  gap: 9px;
 }
 
 .theater:hover .player-controls,
@@ -484,6 +506,21 @@ main {
 .player-controls select {
   width: 78px;
   padding: 0 10px;
+}
+
+.volume-control {
+  gap: 8px;
+  min-width: 140px;
+  height: 42px;
+  padding: 0 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.volume-control input {
+  min-width: 0;
+  width: 86px;
 }
 
 .room-sidebar {
@@ -617,7 +654,11 @@ main {
     grid-template-columns: 1fr;
   }
 
-  .player-controls {
+  .control-row {
     flex-wrap: wrap;
+  }
+
+  .volume-control {
+    flex: 1 1 150px;
   }
 }
