@@ -79,3 +79,11 @@ Docker:
 ```bash
 docker compose up --build
 ```
+
+Compose health checks:
+
+- `api`: calls `/api/health/ready`.
+- `web`: verifies the static site responds.
+- `nginx`: waits for healthy `api` and `web` before serving traffic.
+
+Nginx keeps long WebSocket reads open for room synchronization and enables gzip for static/API text responses.
