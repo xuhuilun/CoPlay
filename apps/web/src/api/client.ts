@@ -27,6 +27,11 @@ export type RoomMember = {
   role: "host" | "member";
 };
 
+export type RoomPresence = {
+  members: RoomMember[];
+  onlineGuestIds: string[];
+};
+
 export type PlayerState = {
   videoId: string;
   currentTime: number;

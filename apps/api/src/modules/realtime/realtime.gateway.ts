@@ -1,6 +1,7 @@
 import type { Server as HttpServer } from "node:http";
-import { Server } from "socket.io";
+import { Server, type Socket } from "socket.io";
 import type { RoomStore } from "../rooms/room.store.js";
+import type { PresenceStore } from "./presence.store.js";
 
 type JoinPayload = {
   roomId: string;
@@ -31,6 +32,7 @@ type VideoSwitchPayload = {
 export function registerRealtimeGateway(
   httpServer: HttpServer,
   rooms: RoomStore,
+  presence: PresenceStore,
   corsOrigin: string
 ) {
   const io = new Server(httpServer, {
@@ -49,8 +51,18 @@ export function registerRealtimeGateway(
           return;
         }
         socket.join(payload.roomId);
-        io.to(payload.roomId).emit("room:presence", room.members);
+        await presence.markOnline(payload.roomId, payload.guestId, socket.id);
+        await broadcastPresence(io, rooms, presence, payload.roomId);
         socket.emit("player:sync-state", room.playerState);
+      });
+    });
+
+    socket.on("disconnect", () => {
+      runSocketHandler(socket, async () => {
+        const offline = await presence.markOffline(socket.id);
+        if (offline) {
+          await broadcastPresence(io, rooms, presence, offline.roomId);
+        }
       });
     });
 
@@ -107,7 +119,23 @@ export function registerRealtimeGateway(
   return io;
 }
 
-function runSocketHandler(socket: { emit: (event: string, payload: { message: string }) => void }, handler: () => Promise<void>) {
+async function broadcastPresence(
+  io: Server,
+  rooms: RoomStore,
+  presence: PresenceStore,
+  roomId: string
+) {
+  const room = await rooms.findById(roomId);
+  if (!room) {
+    return;
+  }
+  io.to(roomId).emit("room:presence", {
+    members: room.members,
+    onlineGuestIds: await presence.onlineGuestIds(roomId)
+  });
+}
+
+function runSocketHandler(socket: Pick<Socket, "emit">, handler: () => Promise<void>) {
   handler().catch((error: unknown) => {
     const message = error instanceof Error ? error.message : "Realtime event failed";
     socket.emit("room:error", { message });

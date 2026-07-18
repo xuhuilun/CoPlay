@@ -516,6 +516,24 @@ main {
   font-size: 12px;
 }
 
+.member-row span {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+}
+
+.presence-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.28);
+}
+
+.presence-dot.online {
+  background: var(--accent-2);
+  box-shadow: 0 0 0 4px rgba(66, 230, 180, 0.12);
+}
+
 .loading {
   display: grid;
   min-height: 60vh;

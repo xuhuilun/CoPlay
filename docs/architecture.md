@@ -49,4 +49,9 @@ Socket.IO supports two adapter modes:
 - `SOCKET_ADAPTER=memory`: default single API instance mode.
 - `SOCKET_ADAPTER=redis`: uses Redis pub/sub so multiple API instances can broadcast room events consistently.
 
-Redis-backed online presence is still a separate next step; current room membership remains in the selected repository driver.
+Room presence now separates durable room membership from online status:
+
+- Memory adapter mode tracks online guests in process.
+- Redis adapter mode tracks online guests in Redis sets, so presence survives multi-instance fan-out.
+
+Durable room membership remains in the selected repository driver.

@@ -2,7 +2,15 @@ import { Copy, Gauge, Maximize, Pause, Play, RefreshCcw, Volume2 } from "lucide-
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
 import { io, type Socket } from "socket.io-client";
-import { api, socketUrl, type PlayerState, type Room, type RoomMember, type Video } from "../api/client.js";
+import {
+  api,
+  socketUrl,
+  type PlayerState,
+  type Room,
+  type RoomMember,
+  type RoomPresence,
+  type Video
+} from "../api/client.js";
 import { getGuestId, getNickname } from "../api/guest.js";
 
 export function RoomPage() {
@@ -14,6 +22,7 @@ export function RoomPage() {
   const [room, setRoom] = useState<Room | null>(null);
   const [video, setVideo] = useState<Video | null>(null);
   const [members, setMembers] = useState<RoomMember[]>([]);
+  const [onlineGuestIds, setOnlineGuestIds] = useState<string[]>([]);
   const [notice, setNotice] = useState("同步状态待连接");
   const [copied, setCopied] = useState(false);
 
@@ -36,7 +45,15 @@ export function RoomPage() {
     socketRef.current = socket;
 
     socket.emit("room:join", { roomId, guestId, nickname });
-    socket.on("room:presence", setMembers);
+    socket.on("room:presence", (payload: RoomPresence | RoomMember[]) => {
+      if (Array.isArray(payload)) {
+        setMembers(payload);
+        setOnlineGuestIds(payload.map((member) => member.guestId));
+        return;
+      }
+      setMembers(payload.members);
+      setOnlineGuestIds(payload.onlineGuestIds);
+    });
     socket.on("player:sync-state", applyPlayerState);
     socket.on("player:event", (payload: { referenceState: PlayerState; action: string }) => {
       if (payload.referenceState.updatedBy === guestId) {
@@ -169,7 +186,10 @@ export function RoomPage() {
           </h2>
           {members.map((member) => (
             <div key={member.guestId} className="member-row">
-              <span>{member.nickname}</span>
+              <span>
+                <i className={onlineGuestIds.includes(member.guestId) ? "presence-dot online" : "presence-dot"} />
+                {member.nickname}
+              </span>
               <strong>{member.role === "host" ? "房主" : "成员"}</strong>
             </div>
           ))}
