@@ -1,6 +1,7 @@
 import type { CacheJob as PrismaCacheJob, PrismaClient } from "@prisma/client";
 import type { VideoStore } from "../videos/video.store.js";
 import type { CacheJob } from "./cache-job.model.js";
+import type { CacheJobNotifier } from "./cache-job.notifier.js";
 import type { CacheJobStore } from "./cache-job.store.js";
 
 const posterUrl =
@@ -9,7 +10,8 @@ const posterUrl =
 export class PrismaCacheJobRepository implements CacheJobStore {
   constructor(
     private readonly prisma: PrismaClient,
-    private readonly videos: VideoStore
+    private readonly videos: VideoStore,
+    private readonly notifier?: CacheJobNotifier
   ) {}
 
   async create(sourceUrl: string): Promise<CacheJob> {
@@ -22,7 +24,9 @@ export class PrismaCacheJobRepository implements CacheJobStore {
       }
     });
     this.simulate(job.id);
-    return toCacheJob(job);
+    const cacheJob = toCacheJob(job);
+    this.notifier?.publish(cacheJob);
+    return cacheJob;
   }
 
   async findById(id: string): Promise<CacheJob | undefined> {
@@ -64,7 +68,7 @@ export class PrismaCacheJobRepository implements CacheJobStore {
       videoId = video.id;
     }
 
-    await this.prisma.cacheJob.update({
+    const updated = await this.prisma.cacheJob.update({
       where: { id },
       data: {
         status: step.status,
@@ -73,6 +77,7 @@ export class PrismaCacheJobRepository implements CacheJobStore {
         videoId
       }
     });
+    this.notifier?.publish(toCacheJob(updated));
   }
 }
 

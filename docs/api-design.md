@@ -30,6 +30,8 @@ Namespace: default Socket.IO namespace.
 | `player:sync-state` | Server to client | Return current reference state |
 | `video:switch` | Client to server | Host switches room video |
 | `video:switch-event` | Server to client | Notify members of video switch |
+| `cache-job:subscribe` | Client to server | Subscribe to one cache job progress |
+| `cache-job:update` | Server to client | Push cache job progress update |
 
 `room:presence` payload:
 
@@ -43,6 +45,16 @@ Namespace: default Socket.IO namespace.
 ```
 
 `video:switch-event` carries the new reference `PlayerState`. Clients must load `videoId` from the video API before applying playback state.
+
+`cache-job:subscribe` payload:
+
+```json
+{
+  "jobId": "job_123"
+}
+```
+
+`cache-job:update` payload is the same shape as `GET /cache-jobs/:id`.
 
 ## Invite Message
 

@@ -21,6 +21,7 @@ Progress:
 - Socket.IO Redis fan-out is available behind `SOCKET_ADAPTER=redis`.
 - Online room presence is separated from durable room membership and can use Redis in multi-instance mode.
 - Room hosts can switch videos from the room sidebar; clients load the new source before applying reference state.
+- Cache job progress can be pushed through WebSocket while HTTP polling remains as a fallback.
 
 ## Phase 3: Production Integrations
 

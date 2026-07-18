@@ -1,7 +1,8 @@
 import { ArrowRight, Loader2, Search, UploadCloud } from "lucide-react";
 import { FormEvent, useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { api, type CacheJob, type Video } from "../api/client.js";
+import { io } from "socket.io-client";
+import { api, socketUrl, type CacheJob, type Video } from "../api/client.js";
 import { VideoCard } from "../components/VideoCard.js";
 
 export function HomePage() {
@@ -25,6 +26,24 @@ export function HomePage() {
     }, 900);
     return () => window.clearInterval(timer);
   }, [job]);
+
+  useEffect(() => {
+    if (!job || job.status === "completed" || job.status === "failed") {
+      return;
+    }
+    const socket = io(socketUrl, { reconnection: true });
+    socket.on("connect", () => {
+      socket.emit("cache-job:subscribe", { jobId: job.id });
+    });
+    socket.on("cache-job:update", (next: CacheJob) => {
+      if (next.id === job.id) {
+        setJob(next);
+      }
+    });
+    return () => {
+      socket.disconnect();
+    };
+  }, [job?.id, job?.status]);
 
   async function submitCacheJob(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();

@@ -4,6 +4,8 @@ import { PrismaClient } from "@prisma/client";
 import Fastify from "fastify";
 import { createClient } from "redis";
 import { loadConfig } from "./config.js";
+import { registerCacheJobGateway } from "./modules/cache-jobs/cache-job.gateway.js";
+import { CacheJobNotifier } from "./modules/cache-jobs/cache-job.notifier.js";
 import { CacheJobRepository } from "./modules/cache-jobs/cache-job.repository.js";
 import { registerCacheJobRoutes } from "./modules/cache-jobs/cache-job.routes.js";
 import type { CacheJobStore } from "./modules/cache-jobs/cache-job.store.js";
@@ -36,15 +38,16 @@ let videos: VideoStore;
 let cacheJobs: CacheJobStore;
 let rooms: RoomStore;
 let presence: PresenceStore;
+const cacheJobNotifier = new CacheJobNotifier();
 
 if (config.persistenceDriver === "prisma") {
   prisma = new PrismaClient();
   videos = new PrismaVideoRepository(prisma);
-  cacheJobs = new PrismaCacheJobRepository(prisma, videos);
+  cacheJobs = new PrismaCacheJobRepository(prisma, videos, cacheJobNotifier);
   rooms = new PrismaRoomRepository(prisma);
 } else {
   videos = new VideoRepository();
-  cacheJobs = new CacheJobRepository(videos);
+  cacheJobs = new CacheJobRepository(videos, cacheJobNotifier);
   rooms = new RoomRepository();
 }
 
@@ -73,6 +76,7 @@ await registerCacheJobRoutes(app, cacheJobs);
 await registerRoomRoutes(app, rooms, videos);
 
 const io = registerRealtimeGateway(app.server, rooms, presence, config.webOrigin);
+const unregisterCacheJobGateway = registerCacheJobGateway(io, cacheJobNotifier);
 let closeRedisSocketAdapter: (() => Promise<void>) | undefined;
 
 if (config.socketAdapter === "redis") {
@@ -84,6 +88,7 @@ if (config.socketAdapter === "redis") {
 }
 
 app.addHook("onClose", async () => {
+  unregisterCacheJobGateway();
   await closeRedisSocketAdapter?.();
   await prisma?.$disconnect();
 });

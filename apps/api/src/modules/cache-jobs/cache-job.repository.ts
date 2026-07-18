@@ -1,6 +1,7 @@
 import { createId } from "../../shared/id.js";
 import type { VideoStore } from "../videos/video.store.js";
 import type { CacheJob } from "./cache-job.model.js";
+import type { CacheJobNotifier } from "./cache-job.notifier.js";
 import type { CacheJobStore } from "./cache-job.store.js";
 
 const posterUrl =
@@ -9,7 +10,10 @@ const posterUrl =
 export class CacheJobRepository implements CacheJobStore {
   private readonly jobs = new Map<string, CacheJob>();
 
-  constructor(private readonly videos: VideoStore) {}
+  constructor(
+    private readonly videos: VideoStore,
+    private readonly notifier?: CacheJobNotifier
+  ) {}
 
   create(sourceUrl: string): CacheJob {
     const now = new Date().toISOString();
@@ -23,6 +27,7 @@ export class CacheJobRepository implements CacheJobStore {
       updatedAt: now
     };
     this.jobs.set(job.id, job);
+    this.notifier?.publish(job);
     this.simulate(job.id);
     return job;
   }
@@ -62,6 +67,7 @@ export class CacheJobRepository implements CacheJobStore {
           next.videoId = video.id;
         }
         this.jobs.set(id, next);
+        this.notifier?.publish(next);
       }, (index + 1) * 1300);
     });
   }
