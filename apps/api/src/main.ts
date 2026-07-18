@@ -1,4 +1,6 @@
 import cors from "@fastify/cors";
+import helmet from "@fastify/helmet";
+import rateLimit from "@fastify/rate-limit";
 import sensible from "@fastify/sensible";
 import { PrismaClient } from "@prisma/client";
 import Fastify from "fastify";
@@ -31,6 +33,13 @@ const app = Fastify({ logger: true });
 await app.register(cors, {
   origin: config.webOrigin,
   credentials: true
+});
+await app.register(helmet, {
+  contentSecurityPolicy: false
+});
+await app.register(rateLimit, {
+  max: config.rateLimitMax,
+  timeWindow: config.rateLimitWindow
 });
 await app.register(sensible);
 

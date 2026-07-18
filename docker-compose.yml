@@ -33,6 +33,8 @@ services:
       CDN_BASE_URL: https://cdn.bilisync.top
       PERSISTENCE_DRIVER: memory
       SOCKET_ADAPTER: memory
+      RATE_LIMIT_MAX: 300
+      RATE_LIMIT_WINDOW: 1 minute
     depends_on:
       - mysql
       - redis

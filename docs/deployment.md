@@ -29,6 +29,17 @@ Docker Compose starts:
 
 Readiness checks MySQL only when `PERSISTENCE_DRIVER=prisma`, and Redis only when `SOCKET_ADAPTER=redis`.
 
+## API Safety Defaults
+
+The API enables standard security headers and global HTTP rate limiting.
+
+```bash
+RATE_LIMIT_MAX=300
+RATE_LIMIT_WINDOW="1 minute"
+```
+
+WebSocket message throttling is a separate concern and should be added before opening large public rooms.
+
 ## Local Commands
 
 ```bash

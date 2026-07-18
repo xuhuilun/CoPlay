@@ -23,6 +23,7 @@ Progress:
 - Room hosts can switch videos from the room sidebar; clients load the new source before applying reference state.
 - Cache job progress can be pushed through WebSocket while HTTP polling remains as a fallback.
 - API exposes liveness and readiness endpoints for deployment health checks.
+- API has baseline HTTP security headers and global rate limiting.
 
 ## Phase 3: Production Integrations
 
