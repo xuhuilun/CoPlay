@@ -1,10 +1,26 @@
-import type { RedisClientType } from "redis";
 import type { PresenceStore } from "./presence.store.js";
 
 const ttlSeconds = 60 * 60 * 12;
 
+type RedisPresenceTransaction = {
+  hSet(key: string, value: Record<string, string>): RedisPresenceTransaction;
+  expire(key: string, seconds: number): RedisPresenceTransaction;
+  sAdd(key: string, value: string): RedisPresenceTransaction;
+  sRem(key: string, value: string): RedisPresenceTransaction;
+  del(key: string): RedisPresenceTransaction;
+  exec(): Promise<unknown>;
+};
+
+export type RedisPresenceClient = {
+  multi(): RedisPresenceTransaction;
+  hGetAll(key: string): Promise<Record<string, string>>;
+  sRem(key: string, value: string): Promise<number>;
+  sCard(key: string): Promise<number>;
+  sMembers(key: string): Promise<string[]>;
+};
+
 export class RedisPresenceStore implements PresenceStore {
-  constructor(private readonly redis: RedisClientType) {}
+  constructor(private readonly redis: RedisPresenceClient) {}
 
   async markOnline(roomId: string, guestId: string, socketId: string): Promise<void> {
     const socketKey = socketPresenceKey(socketId);

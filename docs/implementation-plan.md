@@ -22,6 +22,7 @@ Progress:
 - Online room presence is separated from durable room membership and can use Redis in multi-instance mode.
 - Room hosts can switch videos from the room sidebar; clients load the new source before applying reference state.
 - Cache job progress can be pushed through WebSocket while HTTP polling remains as a fallback.
+- API exposes liveness and readiness endpoints for deployment health checks.
 
 ## Phase 3: Production Integrations
 

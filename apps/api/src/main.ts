@@ -9,12 +9,13 @@ import { CacheJobNotifier } from "./modules/cache-jobs/cache-job.notifier.js";
 import { CacheJobRepository } from "./modules/cache-jobs/cache-job.repository.js";
 import { registerCacheJobRoutes } from "./modules/cache-jobs/cache-job.routes.js";
 import type { CacheJobStore } from "./modules/cache-jobs/cache-job.store.js";
+import { registerHealthRoutes } from "./modules/health/health.routes.js";
 import { PrismaCacheJobRepository } from "./modules/cache-jobs/prisma-cache-job.repository.js";
 import { MemoryPresenceStore } from "./modules/realtime/memory-presence.store.js";
 import type { PresenceStore } from "./modules/realtime/presence.store.js";
 import { registerRealtimeGateway } from "./modules/realtime/realtime.gateway.js";
 import { registerRedisSocketAdapter } from "./modules/realtime/redis-socket-adapter.js";
-import { RedisPresenceStore } from "./modules/realtime/redis-presence.store.js";
+import { RedisPresenceStore, type RedisPresenceClient } from "./modules/realtime/redis-presence.store.js";
 import { PrismaRoomRepository } from "./modules/rooms/prisma-room.repository.js";
 import { RoomRepository } from "./modules/rooms/room.repository.js";
 import { registerRoomRoutes } from "./modules/rooms/room.routes.js";
@@ -38,6 +39,7 @@ let videos: VideoStore;
 let cacheJobs: CacheJobStore;
 let rooms: RoomStore;
 let presence: PresenceStore;
+let redisPresenceClient: { ping(): Promise<string> } | undefined;
 const cacheJobNotifier = new CacheJobNotifier();
 
 if (config.persistenceDriver === "prisma") {
@@ -55,21 +57,22 @@ if (config.socketAdapter === "redis") {
   if (!config.redisUrl) {
     throw new Error("REDIS_URL is required when SOCKET_ADAPTER=redis");
   }
-  const redisPresenceClient = createClient({ url: config.redisUrl });
-  await redisPresenceClient.connect();
-  presence = new RedisPresenceStore(redisPresenceClient);
+  const client = createClient({ url: config.redisUrl });
+  await client.connect();
+  redisPresenceClient = client;
+  presence = new RedisPresenceStore(client as unknown as RedisPresenceClient);
   app.addHook("onClose", async () => {
-    await redisPresenceClient.quit();
+    await client.quit();
   });
 } else {
   presence = new MemoryPresenceStore();
 }
 
-app.get("/api/health", async () => ({
-  status: "ok",
-  service: "coplay-api",
-  time: new Date().toISOString()
-}));
+await registerHealthRoutes(app, {
+  config,
+  getPrisma: () => prisma,
+  getRedisClient: () => redisPresenceClient
+});
 
 await registerVideoRoutes(app, videos);
 await registerCacheJobRoutes(app, cacheJobs);

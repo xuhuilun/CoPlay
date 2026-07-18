@@ -7,6 +7,8 @@ Base path: `/api`
 | Method | Path | Purpose |
 | --- | --- | --- |
 | GET | `/health` | Service health check |
+| GET | `/health/live` | Liveness check for process supervisors |
+| GET | `/health/ready` | Readiness check for dependent services |
 | GET | `/videos/hot` | List hot videos |
 | GET | `/videos?query=` | Search cached videos |
 | GET | `/videos/:id` | Read video detail |

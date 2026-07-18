@@ -22,6 +22,13 @@ Docker Compose starts:
 - `/api` -> API service.
 - `/socket.io` -> API WebSocket endpoint.
 
+## Health Checks
+
+- `GET /api/health/live`: process liveness.
+- `GET /api/health/ready`: dependency readiness.
+
+Readiness checks MySQL only when `PERSISTENCE_DRIVER=prisma`, and Redis only when `SOCKET_ADAPTER=redis`.
+
 ## Local Commands
 
 ```bash
