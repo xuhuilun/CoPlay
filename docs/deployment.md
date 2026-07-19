@@ -53,6 +53,10 @@ npm run build
 npm audit --omit=dev
 ```
 
+## Request Tracing
+
+The API accepts `x-request-id` from upstream proxies or generates one per request. The same value is returned in the response header and appears in Fastify logs.
+
 ## Local Commands
 
 ```bash

@@ -28,6 +28,7 @@ Progress:
 - Guests can edit their local room nickname without requiring login.
 - Initial Prisma migration SQL is committed for production review and deploy.
 - GitHub Actions CI runs install, Prisma generate, tests, typecheck, build, and production dependency audit.
+- API returns `x-request-id` for request tracing across logs and clients.
 
 ## Phase 3: Production Integrations
 

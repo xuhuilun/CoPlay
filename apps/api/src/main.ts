@@ -4,6 +4,7 @@ import rateLimit from "@fastify/rate-limit";
 import sensible from "@fastify/sensible";
 import { PrismaClient } from "@prisma/client";
 import Fastify from "fastify";
+import crypto from "node:crypto";
 import { createClient } from "redis";
 import { loadConfig } from "./config.js";
 import { registerCacheJobGateway } from "./modules/cache-jobs/cache-job.gateway.js";
@@ -28,7 +29,11 @@ import { registerVideoRoutes } from "./modules/videos/video.routes.js";
 import type { VideoStore } from "./modules/videos/video.store.js";
 
 const config = loadConfig();
-const app = Fastify({ logger: true });
+const app = Fastify({
+  logger: true,
+  requestIdHeader: "x-request-id",
+  genReqId: () => crypto.randomUUID()
+});
 
 await app.register(cors, {
   origin: config.webOrigin,
@@ -42,6 +47,10 @@ await app.register(rateLimit, {
   timeWindow: config.rateLimitWindow
 });
 await app.register(sensible);
+
+app.addHook("onRequest", async (request, reply) => {
+  reply.header("x-request-id", request.id);
+});
 
 let prisma: PrismaClient | undefined;
 let videos: VideoStore;
