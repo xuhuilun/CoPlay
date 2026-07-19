@@ -33,6 +33,7 @@ Progress:
 - Room REST routes have Fastify injection tests for create, join, validation, missing resources, and capacity limits.
 - Web pages expose polished loading, empty, and error states for video discovery, detail, and room entry flows.
 - Health routes have Fastify injection tests for live checks, memory readiness, dependency success, and dependency failure.
+- Cache job REST routes have Fastify injection tests for create, invalid URL, detail, and missing job behavior.
 
 ## Phase 3: Production Integrations
 
