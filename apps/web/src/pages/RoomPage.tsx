@@ -119,6 +119,7 @@ export function RoomPage() {
     });
     socket.on("video:switch-event", (state: PlayerState) => {
       void handleIncomingPlayerState(state);
+      setSwitchVideoId("");
       setNotice("房主切换了视频，已加载新片源");
     });
     socket.on("room:error", (payload: { message: string }) => setNotice(payload.message));
@@ -197,6 +198,7 @@ export function RoomPage() {
       return;
     }
     socketRef.current?.emit("video:switch", { roomId, guestId, videoId: switchVideoId });
+    setSwitchVideoId("");
   }
 
   async function saveNickname() {

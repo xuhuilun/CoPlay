@@ -43,6 +43,7 @@ Progress:
 - Couple room capacity is covered by repository and REST route tests to stay fixed at two members.
 - Host video switching controls show loading, unavailable, and empty states before enabling switches.
 - Room nicknames are normalized server-side across REST and realtime joins.
+- Host video switching clears stale selected video IDs after switch requests and switch events.
 
 ## Phase 3: Production Integrations
 
