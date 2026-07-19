@@ -1,38 +1,83 @@
-import { DoorOpen, Heart, Users } from "lucide-react";
+import { DoorOpen, Heart, Loader2, Users } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { api, type RoomType, type Video } from "../api/client.js";
 import { getGuestId, getNickname } from "../api/guest.js";
+import { PageState } from "../components/PageState.js";
 
 export function VideoDetailPage() {
   const { videoId } = useParams();
   const [video, setVideo] = useState<Video | null>(null);
+  const [isLoadingVideo, setIsLoadingVideo] = useState(true);
+  const [videoError, setVideoError] = useState("");
+  const [createError, setCreateError] = useState("");
+  const [isCreatingRoom, setIsCreatingRoom] = useState(false);
   const [roomType, setRoomType] = useState<RoomType>("screening");
   const [maxMembers, setMaxMembers] = useState(8);
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (videoId) {
-      api.video(videoId).then(setVideo);
+    if (!videoId) {
+      setVideoError("视频地址无效");
+      setIsLoadingVideo(false);
+      return;
     }
+    let ignore = false;
+    setIsLoadingVideo(true);
+    setVideoError("");
+    api.video(videoId)
+      .then((next) => {
+        if (!ignore) {
+          setVideo(next);
+        }
+      })
+      .catch(() => {
+        if (!ignore) {
+          setVideoError("视频详情暂时无法加载");
+        }
+      })
+      .finally(() => {
+        if (!ignore) {
+          setIsLoadingVideo(false);
+        }
+      });
+    return () => {
+      ignore = true;
+    };
   }, [videoId]);
 
   async function createRoom() {
     if (!video) {
       return;
     }
-    const room = await api.createRoom({
-      videoId: video.id,
-      type: roomType,
-      ownerGuestId: getGuestId(),
-      ownerNickname: getNickname(),
-      maxMembers
-    });
-    navigate(`/rooms/${room.id}`);
+    setIsCreatingRoom(true);
+    setCreateError("");
+    try {
+      const room = await api.createRoom({
+        videoId: video.id,
+        type: roomType,
+        ownerGuestId: getGuestId(),
+        ownerNickname: getNickname(),
+        maxMembers
+      });
+      navigate(`/rooms/${room.id}`);
+    } catch {
+      setCreateError("房间创建失败，请稍后重试");
+    } finally {
+      setIsCreatingRoom(false);
+    }
+  }
+
+  if (isLoadingVideo) {
+    return <PageState tone="loading" title="正在加载视频详情" />;
+  }
+
+  if (videoError) {
+    return <PageState tone="error" title={videoError} />;
   }
 
   if (!video) {
-    return <div className="loading">加载视频...</div>;
+    return <PageState tone="empty" title="视频不存在" />;
   }
 
   return (
@@ -82,9 +127,11 @@ export function VideoDetailPage() {
           </label>
         )}
 
-        <button className="primary-button wide" onClick={createRoom} type="button">
-          <DoorOpen size={18} />
-          创建房间
+        {createError && <div className="inline-alert">{createError}</div>}
+
+        <button className="primary-button wide" onClick={createRoom} type="button" disabled={isCreatingRoom}>
+          {isCreatingRoom ? <Loader2 className="spin" size={18} /> : <DoorOpen size={18} />}
+          {isCreatingRoom ? "创建中" : "创建房间"}
         </button>
       </div>
     </section>

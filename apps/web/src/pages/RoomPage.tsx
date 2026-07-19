@@ -12,6 +12,7 @@ import {
   type Video
 } from "../api/client.js";
 import { getGuestId, getNickname, setNickname } from "../api/guest.js";
+import { PageState } from "../components/PageState.js";
 
 export function RoomPage() {
   const { roomId } = useParams();
@@ -25,6 +26,8 @@ export function RoomPage() {
   const [nicknameDraft, setNicknameDraft] = useState(initialNickname);
   const [room, setRoom] = useState<Room | null>(null);
   const [video, setVideo] = useState<Video | null>(null);
+  const [isJoiningRoom, setIsJoiningRoom] = useState(true);
+  const [roomError, setRoomError] = useState("");
   const [libraryVideos, setLibraryVideos] = useState<Video[]>([]);
   const [switchVideoId, setSwitchVideoId] = useState("");
   const [members, setMembers] = useState<RoomMember[]>([]);
@@ -38,13 +41,35 @@ export function RoomPage() {
 
   useEffect(() => {
     if (!roomId) {
+      setRoomError("房间地址无效");
+      setIsJoiningRoom(false);
       return;
     }
-    api.joinRoom(roomId, { guestId, nickname }).then((joined) => {
-      setRoom(joined);
-      setMembers(joined.members);
-      api.video(joined.videoId).then(setVideo);
-    });
+    let ignore = false;
+    setIsJoiningRoom(true);
+    setRoomError("");
+    api.joinRoom(roomId, { guestId, nickname })
+      .then(async (joined) => {
+        const joinedVideo = await api.video(joined.videoId);
+        if (!ignore) {
+          setRoom(joined);
+          setMembers(joined.members);
+          setVideo(joinedVideo);
+        }
+      })
+      .catch(() => {
+        if (!ignore) {
+          setRoomError("加入房间失败，请确认邀请链接是否有效");
+        }
+      })
+      .finally(() => {
+        if (!ignore) {
+          setIsJoiningRoom(false);
+        }
+      });
+    return () => {
+      ignore = true;
+    };
   }, [guestId, nickname, roomId]);
 
   useEffect(() => {
@@ -52,7 +77,9 @@ export function RoomPage() {
   }, [video]);
 
   useEffect(() => {
-    api.videos().then((data) => setLibraryVideos(data.items));
+    api.videos()
+      .then((data) => setLibraryVideos(data.items))
+      .catch(() => setNotice("视频库暂时无法加载"));
   }, []);
 
   useEffect(() => {
@@ -96,9 +123,13 @@ export function RoomPage() {
   async function handleIncomingPlayerState(state: PlayerState) {
     if (state.videoId !== currentVideoIdRef.current) {
       pendingPlayerStateRef.current = state;
-      const nextVideo = await api.video(state.videoId);
-      setVideo(nextVideo);
-      setRoom((current) => current ? { ...current, videoId: state.videoId, playerState: state } : current);
+      try {
+        const nextVideo = await api.video(state.videoId);
+        setVideo(nextVideo);
+        setRoom((current) => current ? { ...current, videoId: state.videoId, playerState: state } : current);
+      } catch {
+        setNotice("新片源暂时无法加载");
+      }
       return;
     }
     applyPlayerState(state);
@@ -139,9 +170,13 @@ export function RoomPage() {
 
   async function copyInvite() {
     const text = `快来加入我的房间一起玩吧！ ${window.location.href}`;
-    await navigator.clipboard.writeText(text);
-    setCopied(true);
-    window.setTimeout(() => setCopied(false), 1600);
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 1600);
+    } catch {
+      setNotice("邀请链接复制失败");
+    }
   }
 
   function syncToReference() {
@@ -161,9 +196,14 @@ export function RoomPage() {
     setNicknameState(next);
     setNicknameDraft(next);
     if (roomId) {
-      const joined = await api.joinRoom(roomId, { guestId, nickname: next });
-      setMembers(joined.members);
-      socketRef.current?.emit("room:join", { roomId, guestId, nickname: next });
+      try {
+        const joined = await api.joinRoom(roomId, { guestId, nickname: next });
+        setMembers(joined.members);
+        socketRef.current?.emit("room:join", { roomId, guestId, nickname: next });
+        setNotice("昵称已更新");
+      } catch {
+        setNotice("昵称保存失败");
+      }
     }
   }
 
@@ -209,8 +249,16 @@ export function RoomPage() {
 
   const isHost = room?.hostGuestId === guestId;
 
+  if (isJoiningRoom) {
+    return <PageState tone="loading" title="正在加入房间" />;
+  }
+
+  if (roomError) {
+    return <PageState tone="error" title={roomError} />;
+  }
+
   if (!room || !video) {
-    return <div className="loading">加入房间...</div>;
+    return <PageState tone="empty" title="房间暂时不可用" />;
   }
 
   return (

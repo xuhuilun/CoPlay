@@ -3,17 +3,43 @@ import { FormEvent, useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { io } from "socket.io-client";
 import { api, socketUrl, type CacheJob, type Video } from "../api/client.js";
+import { PageState } from "../components/PageState.js";
 import { VideoCard } from "../components/VideoCard.js";
 
 export function HomePage() {
   const [videos, setVideos] = useState<Video[]>([]);
+  const [isLoadingVideos, setIsLoadingVideos] = useState(true);
+  const [videoError, setVideoError] = useState("");
   const [sourceUrl, setSourceUrl] = useState("");
   const [job, setJob] = useState<CacheJob | null>(null);
+  const [jobError, setJobError] = useState("");
+  const [isSubmittingJob, setIsSubmittingJob] = useState(false);
   const [search, setSearch] = useState("");
   const navigate = useNavigate();
 
   useEffect(() => {
-    api.hotVideos().then((data) => setVideos(data.items));
+    let ignore = false;
+    setIsLoadingVideos(true);
+    setVideoError("");
+    api.hotVideos()
+      .then((data) => {
+        if (!ignore) {
+          setVideos(data.items);
+        }
+      })
+      .catch(() => {
+        if (!ignore) {
+          setVideoError("热门视频暂时无法加载");
+        }
+      })
+      .finally(() => {
+        if (!ignore) {
+          setIsLoadingVideos(false);
+        }
+      });
+    return () => {
+      ignore = true;
+    };
   }, []);
 
   useEffect(() => {
@@ -21,8 +47,12 @@ export function HomePage() {
       return;
     }
     const timer = window.setInterval(async () => {
-      const next = await api.cacheJob(job.id);
-      setJob(next);
+      try {
+        const next = await api.cacheJob(job.id);
+        setJob(next);
+      } catch {
+        setJobError("缓存进度暂时无法刷新");
+      }
     }, 900);
     return () => window.clearInterval(timer);
   }, [job]);
@@ -47,8 +77,16 @@ export function HomePage() {
 
   async function submitCacheJob(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const next = await api.createCacheJob(sourceUrl);
-    setJob(next);
+    setIsSubmittingJob(true);
+    setJobError("");
+    try {
+      const next = await api.createCacheJob(sourceUrl);
+      setJob(next);
+    } catch {
+      setJobError("缓存任务提交失败，请稍后重试");
+    } finally {
+      setIsSubmittingJob(false);
+    }
   }
 
   function submitSearch(event: FormEvent<HTMLFormElement>) {
@@ -88,10 +126,11 @@ export function HomePage() {
             type="url"
             required
           />
-          <button className="primary-button" type="submit">
-            <UploadCloud size={18} />
-            缓存到 CDN
+          <button className="primary-button" type="submit" disabled={isSubmittingJob}>
+            {isSubmittingJob ? <Loader2 className="spin" size={18} /> : <UploadCloud size={18} />}
+            {isSubmittingJob ? "提交中" : "缓存到 CDN"}
           </button>
+          {jobError && <div className="inline-alert">{jobError}</div>}
           {job && (
             <div className="job-meter">
               <div className="job-meter__line">
@@ -120,9 +159,16 @@ export function HomePage() {
         <Link to="/library">查看全部</Link>
       </div>
       <div className="video-grid">
-        {videos.map((video, index) => (
-          <VideoCard key={video.id} video={video} featured={index === 0} />
-        ))}
+        {isLoadingVideos && <PageState tone="loading" title="正在加载热门视频" />}
+        {!isLoadingVideos && videoError && <PageState tone="error" title={videoError} />}
+        {!isLoadingVideos && !videoError && videos.length === 0 && (
+          <PageState tone="empty" title="暂无热门视频" />
+        )}
+        {!isLoadingVideos &&
+          !videoError &&
+          videos.map((video, index) => (
+            <VideoCard key={video.id} video={video} featured={index === 0} />
+          ))}
       </div>
     </section>
   );
