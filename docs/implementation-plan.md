@@ -32,6 +32,7 @@ Progress:
 - Realtime socket events validate payload shape and throttle high-frequency player actions.
 - Room REST routes have Fastify injection tests for create, join, validation, missing resources, and capacity limits.
 - Web pages expose polished loading, empty, and error states for video discovery, detail, and room entry flows.
+- Health routes have Fastify injection tests for live checks, memory readiness, dependency success, and dependency failure.
 
 ## Phase 3: Production Integrations
 
