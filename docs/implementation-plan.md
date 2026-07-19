@@ -39,6 +39,7 @@ Progress:
 - API numeric environment settings fall back to safe defaults when invalid.
 - Cache job WebSocket subscriptions validate payload shape before joining progress channels.
 - Web routing includes a polished 404 fallback for unknown paths.
+- The web room creation form clamps screening room capacity to the supported 2-100 member range.
 
 ## Phase 3: Production Integrations
 

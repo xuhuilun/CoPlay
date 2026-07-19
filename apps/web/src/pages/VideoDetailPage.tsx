@@ -58,7 +58,7 @@ export function VideoDetailPage() {
         type: roomType,
         ownerGuestId: getGuestId(),
         ownerNickname: getNickname(),
-        maxMembers
+        maxMembers: clampMaxMembers(maxMembers)
       });
       navigate(`/rooms/${room.id}`);
     } catch {
@@ -122,7 +122,7 @@ export function VideoDetailPage() {
               min={2}
               max={100}
               value={maxMembers}
-              onChange={(event) => setMaxMembers(Number(event.target.value))}
+              onChange={(event) => setMaxMembers(clampMaxMembers(Number(event.target.value)))}
             />
           </label>
         )}
@@ -136,4 +136,11 @@ export function VideoDetailPage() {
       </div>
     </section>
   );
+}
+
+function clampMaxMembers(value: number): number {
+  if (!Number.isFinite(value)) {
+    return 8;
+  }
+  return Math.min(100, Math.max(2, Math.trunc(value)));
 }
