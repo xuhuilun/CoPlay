@@ -31,6 +31,27 @@ test("POST /api/rooms creates a room for an existing video", async () => {
   await app.close();
 });
 
+test("POST /api/rooms caps couple room capacity to two members", async () => {
+  const { app, videoId } = await createRoomRoutesTestApp();
+
+  const response = await app.inject({
+    method: "POST",
+    url: "/api/rooms",
+    payload: {
+      videoId,
+      type: "couple",
+      ownerGuestId: "host",
+      ownerNickname: "Host",
+      maxMembers: 100
+    }
+  });
+
+  assert.equal(response.statusCode, 201);
+  assert.equal(response.json().maxMembers, 2);
+
+  await app.close();
+});
+
 test("POST /api/rooms rejects invalid payloads and unknown videos", async () => {
   const { app } = await createRoomRoutesTestApp();
 

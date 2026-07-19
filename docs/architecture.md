@@ -26,6 +26,7 @@ CoPlay is a front-end/back-end separated synchronized video watching platform. T
 ### Couple Room
 
 - Maximum 2 members.
+- Server-side room creation always stores `maxMembers=2` for couple rooms, regardless of client input.
 - Play, pause, and seek events sync immediately.
 - The `sync-progress` button is always available as fallback.
 

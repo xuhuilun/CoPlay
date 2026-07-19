@@ -40,6 +40,7 @@ Progress:
 - Cache job WebSocket subscriptions validate payload shape before joining progress channels.
 - Web routing includes a polished 404 fallback for unknown paths.
 - The web room creation form clamps screening room capacity to the supported 2-100 member range.
+- Couple room capacity is covered by repository and REST route tests to stay fixed at two members.
 
 ## Phase 3: Production Integrations
 

@@ -24,6 +24,19 @@ test("couple room accepts member player state as reference", () => {
   assert.equal(updated?.playerState.updatedBy, "member");
 });
 
+test("couple room capacity is always two members", () => {
+  const rooms = new RoomRepository();
+  const room = rooms.create({
+    type: "couple",
+    videoId: "video_a",
+    ownerGuestId: "host",
+    ownerNickname: "Host",
+    maxMembers: 100
+  });
+
+  assert.equal(room.maxMembers, 2);
+});
+
 test("screening room ignores non-host player state as reference", () => {
   const rooms = new RoomRepository();
   const room = rooms.create({
