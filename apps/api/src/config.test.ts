@@ -35,6 +35,24 @@ test("loadConfig falls back to the local web origin when origins are empty", () 
   });
 });
 
+test("loadConfig parses valid positive integer settings", () => {
+  withEnv({ API_PORT: "4100", RATE_LIMIT_MAX: "120" }, () => {
+    const config = loadConfig();
+
+    assert.equal(config.port, 4100);
+    assert.equal(config.rateLimitMax, 120);
+  });
+});
+
+test("loadConfig falls back when positive integer settings are invalid", () => {
+  withEnv({ API_PORT: "not-a-port", RATE_LIMIT_MAX: "-1" }, () => {
+    const config = loadConfig();
+
+    assert.equal(config.port, 4000);
+    assert.equal(config.rateLimitMax, 300);
+  });
+});
+
 function withEnv(values: Record<string, string | undefined>, run: () => void) {
   const previous = new Map<string, string | undefined>();
   for (const [key, value] of Object.entries(values)) {

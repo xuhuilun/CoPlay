@@ -15,13 +15,13 @@ export function loadConfig(): AppConfig {
   const webOrigins = parseWebOrigins();
 
   return {
-    port: Number(process.env.API_PORT ?? 4000),
+    port: parsePositiveInteger(process.env.API_PORT, 4000),
     webOrigin: webOrigins[0],
     webOrigins,
     cdnBaseUrl: process.env.CDN_BASE_URL ?? "https://cdn.bilisync.top",
     persistenceDriver: process.env.PERSISTENCE_DRIVER === "prisma" ? "prisma" : "memory",
     socketAdapter: process.env.SOCKET_ADAPTER === "redis" ? "redis" : "memory",
-    rateLimitMax: Number(process.env.RATE_LIMIT_MAX ?? 300),
+    rateLimitMax: parsePositiveInteger(process.env.RATE_LIMIT_MAX, 300),
     rateLimitWindow: process.env.RATE_LIMIT_WINDOW ?? "1 minute",
     databaseUrl: process.env.DATABASE_URL,
     redisUrl: process.env.REDIS_URL
@@ -36,4 +36,13 @@ function parseWebOrigins(): string[] {
     .filter(Boolean);
 
   return origins.length > 0 ? origins : ["http://localhost:5173"];
+}
+
+function parsePositiveInteger(value: string | undefined, fallback: number): number {
+  if (!value) {
+    return fallback;
+  }
+
+  const parsed = Number(value);
+  return Number.isInteger(parsed) && parsed > 0 ? parsed : fallback;
 }

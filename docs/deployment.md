@@ -41,6 +41,8 @@ RATE_LIMIT_WINDOW="1 minute"
 
 `WEB_ORIGINS` is the preferred comma-separated CORS allowlist for both REST and Socket.IO. `WEB_ORIGIN` remains supported for single-origin deployments.
 
+`API_PORT` and `RATE_LIMIT_MAX` must be positive integers. Invalid values fall back to `4000` and `300` so a bad environment value does not start the API with `NaN`.
+
 WebSocket player actions are validated and throttled per socket so noisy clients cannot flood room synchronization.
 
 ## Quality Gate
