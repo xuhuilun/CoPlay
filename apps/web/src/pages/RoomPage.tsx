@@ -29,6 +29,8 @@ export function RoomPage() {
   const [isJoiningRoom, setIsJoiningRoom] = useState(true);
   const [roomError, setRoomError] = useState("");
   const [libraryVideos, setLibraryVideos] = useState<Video[]>([]);
+  const [isLoadingLibrary, setIsLoadingLibrary] = useState(true);
+  const [libraryError, setLibraryError] = useState("");
   const [switchVideoId, setSwitchVideoId] = useState("");
   const [members, setMembers] = useState<RoomMember[]>([]);
   const [onlineGuestIds, setOnlineGuestIds] = useState<string[]>([]);
@@ -77,9 +79,15 @@ export function RoomPage() {
   }, [video]);
 
   useEffect(() => {
+    setIsLoadingLibrary(true);
+    setLibraryError("");
     api.videos()
       .then((data) => setLibraryVideos(data.items))
-      .catch(() => setNotice("视频库暂时无法加载"));
+      .catch(() => {
+        setLibraryError("视频库暂时无法加载");
+        setNotice("视频库暂时无法加载");
+      })
+      .finally(() => setIsLoadingLibrary(false));
   }, []);
 
   useEffect(() => {
@@ -185,7 +193,7 @@ export function RoomPage() {
   }
 
   function switchRoomVideo() {
-    if (!roomId || !switchVideoId || switchVideoId === video?.id) {
+    if (!roomId || !switchVideoId || isLoadingLibrary || libraryError || switchVideoId === video?.id) {
       return;
     }
     socketRef.current?.emit("video:switch", { roomId, guestId, videoId: switchVideoId });
@@ -260,6 +268,9 @@ export function RoomPage() {
   if (!room || !video) {
     return <PageState tone="empty" title="房间暂时不可用" />;
   }
+
+  const switchableVideos = libraryVideos.filter((item) => item.id !== video.id);
+  const canSwitchVideo = Boolean(switchVideoId) && !isLoadingLibrary && !libraryError;
 
   return (
     <section className="room-page">
@@ -378,15 +389,24 @@ export function RoomPage() {
                 id="switch-video"
                 value={switchVideoId}
                 onChange={(event) => setSwitchVideoId(event.target.value)}
+                disabled={isLoadingLibrary || Boolean(libraryError) || switchableVideos.length === 0}
               >
-                <option value="">选择视频库影片</option>
-                {libraryVideos.map((item) => (
-                  <option key={item.id} value={item.id} disabled={item.id === video.id}>
+                <option value="">
+                  {isLoadingLibrary
+                    ? "正在加载视频库"
+                    : libraryError
+                      ? "视频库不可用"
+                      : switchableVideos.length === 0
+                        ? "暂无可切换影片"
+                        : "选择视频库影片"}
+                </option>
+                {switchableVideos.map((item) => (
+                  <option key={item.id} value={item.id}>
                     {item.title}
                   </option>
                 ))}
               </select>
-              <button onClick={switchRoomVideo} type="button" title="切换影片">
+              <button onClick={switchRoomVideo} type="button" title="切换影片" disabled={!canSwitchVideo}>
                 <Clapperboard size={18} />
               </button>
             </div>
