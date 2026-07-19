@@ -25,6 +25,7 @@ Progress:
 - API exposes liveness and readiness endpoints for deployment health checks.
 - API has baseline HTTP security headers and global rate limiting.
 - Backend policy tests cover room synchronization rules and memory presence counting.
+- Guests can edit their local room nickname without requiring login.
 
 ## Phase 3: Production Integrations
 

@@ -1,4 +1,4 @@
-import { Clapperboard, Copy, Gauge, Maximize, Pause, Play, RefreshCcw, Volume2 } from "lucide-react";
+import { Clapperboard, Copy, Gauge, Maximize, Pause, Play, RefreshCcw, Save, Volume2 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
 import { io, type Socket } from "socket.io-client";
@@ -11,7 +11,7 @@ import {
   type RoomPresence,
   type Video
 } from "../api/client.js";
-import { getGuestId, getNickname } from "../api/guest.js";
+import { getGuestId, getNickname, setNickname } from "../api/guest.js";
 
 export function RoomPage() {
   const { roomId } = useParams();
@@ -20,7 +20,9 @@ export function RoomPage() {
   const currentVideoIdRef = useRef<string | null>(null);
   const pendingPlayerStateRef = useRef<PlayerState | null>(null);
   const guestId = useMemo(() => getGuestId(), []);
-  const nickname = useMemo(() => getNickname(), []);
+  const initialNickname = useMemo(() => getNickname(), []);
+  const [nickname, setNicknameState] = useState(initialNickname);
+  const [nicknameDraft, setNicknameDraft] = useState(initialNickname);
   const [room, setRoom] = useState<Room | null>(null);
   const [video, setVideo] = useState<Video | null>(null);
   const [libraryVideos, setLibraryVideos] = useState<Video[]>([]);
@@ -89,7 +91,7 @@ export function RoomPage() {
     return () => {
       socket.disconnect();
     };
-  }, [guestId, nickname, room, roomId]);
+  }, [guestId, nickname, room?.id, roomId]);
 
   async function handleIncomingPlayerState(state: PlayerState) {
     if (state.videoId !== currentVideoIdRef.current) {
@@ -152,6 +154,17 @@ export function RoomPage() {
       return;
     }
     socketRef.current?.emit("video:switch", { roomId, guestId, videoId: switchVideoId });
+  }
+
+  async function saveNickname() {
+    const next = setNickname(nicknameDraft);
+    setNicknameState(next);
+    setNicknameDraft(next);
+    if (roomId) {
+      const joined = await api.joinRoom(roomId, { guestId, nickname: next });
+      setMembers(joined.members);
+      socketRef.current?.emit("room:join", { roomId, guestId, nickname: next });
+    }
   }
 
   function applyPendingPlayerState() {
@@ -298,6 +311,17 @@ export function RoomPage() {
           <Copy size={18} />
           {copied ? "已复制邀请" : "邀请好友"}
         </button>
+        <div className="nickname-editor">
+          <input
+            aria-label="昵称"
+            value={nicknameDraft}
+            onChange={(event) => setNicknameDraft(event.target.value)}
+            maxLength={24}
+          />
+          <button onClick={saveNickname} type="button" title="保存昵称">
+            <Save size={18} />
+          </button>
+        </div>
         {isHost && (
           <div className="video-switcher">
             <label htmlFor="switch-video">切换影片</label>

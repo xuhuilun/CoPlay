@@ -44,7 +44,10 @@ export class RoomRepository implements RoomStore {
     if (!room) {
       return undefined;
     }
-    if (!room.members.some((member) => member.guestId === guestId)) {
+    const existingMember = room.members.find((member) => member.guestId === guestId);
+    if (existingMember) {
+      existingMember.nickname = nickname;
+    } else {
       if (room.members.length >= room.maxMembers) {
         throw new Error("ROOM_FULL");
       }

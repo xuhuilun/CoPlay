@@ -66,3 +66,20 @@ test("screening room accepts host player state as reference", () => {
   assert.equal(updated?.playerState.currentTime, 88);
   assert.equal(updated?.playerState.updatedBy, "host");
 });
+
+test("joining again updates existing member nickname", () => {
+  const rooms = new RoomRepository();
+  const room = rooms.create({
+    type: "screening",
+    videoId: "video_a",
+    ownerGuestId: "host",
+    ownerNickname: "Host",
+    maxMembers: 8
+  });
+
+  rooms.join(room.id, "guest_a", "Old Nick");
+  const updated = rooms.join(room.id, "guest_a", "New Nick");
+
+  assert.equal(updated?.members.find((member) => member.guestId === "guest_a")?.nickname, "New Nick");
+  assert.equal(updated?.members.length, 2);
+});

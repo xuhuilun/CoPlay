@@ -20,3 +20,9 @@ export function getNickname(): string {
   localStorage.setItem(nicknameKey, next);
   return next;
 }
+
+export function setNickname(nickname: string): string {
+  const next = nickname.trim().slice(0, 24) || getNickname();
+  localStorage.setItem(nicknameKey, next);
+  return next;
+}

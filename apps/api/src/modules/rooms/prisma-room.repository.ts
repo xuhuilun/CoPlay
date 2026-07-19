@@ -42,7 +42,18 @@ export class PrismaRoomRepository implements RoomStore {
     if (!room) {
       return undefined;
     }
-    if (!room.members.some((member) => member.guestId === guestId)) {
+    const existingMember = room.members.find((member) => member.guestId === guestId);
+    if (existingMember) {
+      await this.prisma.roomMember.update({
+        where: {
+          roomId_guestId: {
+            roomId,
+            guestId
+          }
+        },
+        data: { nickname }
+      });
+    } else {
       if (room.members.length >= room.maxMembers) {
         throw new Error("ROOM_FULL");
       }
