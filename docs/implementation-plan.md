@@ -42,6 +42,7 @@ Progress:
 - The web room creation form clamps screening room capacity to the supported 2-100 member range.
 - Couple room capacity is covered by repository and REST route tests to stay fixed at two members.
 - Host video switching controls show loading, unavailable, and empty states before enabling switches.
+- Room nicknames are normalized server-side across REST and realtime joins.
 
 ## Phase 3: Production Integrations
 

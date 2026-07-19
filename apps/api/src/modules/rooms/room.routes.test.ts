@@ -52,6 +52,27 @@ test("POST /api/rooms caps couple room capacity to two members", async () => {
   await app.close();
 });
 
+test("POST /api/rooms normalizes owner nicknames", async () => {
+  const { app, videoId } = await createRoomRoutesTestApp();
+
+  const response = await app.inject({
+    method: "POST",
+    url: "/api/rooms",
+    payload: {
+      videoId,
+      type: "screening",
+      ownerGuestId: "host",
+      ownerNickname: `  ${"A".repeat(40)}  `,
+      maxMembers: 8
+    }
+  });
+
+  assert.equal(response.statusCode, 201);
+  assert.equal(response.json().members[0].nickname, "A".repeat(24));
+
+  await app.close();
+});
+
 test("POST /api/rooms rejects invalid payloads and unknown videos", async () => {
   const { app } = await createRoomRoutesTestApp();
 
@@ -74,6 +95,37 @@ test("POST /api/rooms rejects invalid payloads and unknown videos", async () => 
     }
   });
   assert.equal(unknownVideo.statusCode, 404);
+
+  await app.close();
+});
+
+test("POST /api/rooms/:id/join normalizes guest nicknames", async () => {
+  const { app, videoId } = await createRoomRoutesTestApp();
+
+  const created = await app.inject({
+    method: "POST",
+    url: "/api/rooms",
+    payload: {
+      videoId,
+      type: "screening",
+      ownerGuestId: "host",
+      ownerNickname: "Host",
+      maxMembers: 8
+    }
+  });
+  const room = created.json();
+
+  const joined = await app.inject({
+    method: "POST",
+    url: `/api/rooms/${room.id}/join`,
+    payload: { guestId: "guest_a", nickname: `  ${"B".repeat(40)}  ` }
+  });
+
+  assert.equal(joined.statusCode, 200);
+  assert.equal(
+    joined.json().members.find((member: { guestId: string }) => member.guestId === "guest_a")?.nickname,
+    "B".repeat(24)
+  );
 
   await app.close();
 });

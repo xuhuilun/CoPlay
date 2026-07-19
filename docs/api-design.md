@@ -18,6 +18,8 @@ Base path: `/api`
 | GET | `/rooms/:id` | Read room detail |
 | POST | `/rooms/:id/join` | Join room as guest |
 
+Room nicknames are trimmed and capped at 24 characters on create, join, and realtime join events.
+
 ## WebSocket Events
 
 Namespace: default Socket.IO namespace.

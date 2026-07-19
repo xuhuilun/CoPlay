@@ -3,17 +3,19 @@ import { z } from "zod";
 import type { VideoStore } from "../videos/video.store.js";
 import type { RoomStore } from "./room.store.js";
 
+const nicknameSchema = z.string().trim().min(1).transform((value) => value.slice(0, 24));
+
 const createRoomSchema = z.object({
   videoId: z.string().min(1),
   type: z.enum(["couple", "screening"]),
   ownerGuestId: z.string().min(1),
-  ownerNickname: z.string().min(1).default("游客"),
+  ownerNickname: nicknameSchema.default("游客"),
   maxMembers: z.number().int().min(2).max(100).default(8)
 });
 
 const joinRoomSchema = z.object({
   guestId: z.string().min(1),
-  nickname: z.string().min(1).default("游客")
+  nickname: nicknameSchema.default("游客")
 });
 
 export async function registerRoomRoutes(

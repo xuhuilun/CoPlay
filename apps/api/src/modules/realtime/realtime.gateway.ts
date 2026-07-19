@@ -31,7 +31,7 @@ type VideoSwitchPayload = {
 };
 
 const idSchema = z.string().trim().min(1).max(128);
-const nicknameSchema = z.string().trim().min(1).max(32);
+const nicknameSchema = z.string().trim().min(1).transform((value) => value.slice(0, 24));
 const joinPayloadSchema = z.object({
   roomId: idSchema,
   guestId: idSchema,

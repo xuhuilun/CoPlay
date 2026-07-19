@@ -43,6 +43,14 @@ test("realtime payload validators accept expected socket events", () => {
   });
 });
 
+test("realtime room join validator normalizes nicknames", () => {
+  assert.deepEqual(validateJoinPayload({ roomId: "room_a", guestId: "guest_a", nickname: `  ${"C".repeat(40)}  ` }), {
+    roomId: "room_a",
+    guestId: "guest_a",
+    nickname: "C".repeat(24)
+  });
+});
+
 test("realtime payload validators reject malformed player actions", () => {
   assert.equal(
     validatePlayerActionPayload({
