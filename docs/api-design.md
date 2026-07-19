@@ -57,6 +57,7 @@ Realtime client-to-server events are validated before touching room state:
 - `player:action.currentTime` must be finite and between 0 seconds and 24 hours.
 - `player:action.playbackRate` must be finite and between `0.25` and `3`.
 - `player:action.action` only accepts `play`, `pause`, `seek`, or `sync-progress`.
+- `cache-job:subscribe.jobId` must be a non-empty string up to 128 characters.
 
 Invalid events return `room:error` and are ignored. `player:action` is limited to 12 events per socket per second to protect room synchronization from noisy clients.
 
