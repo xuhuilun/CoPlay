@@ -34,11 +34,14 @@ Readiness checks MySQL only when `PERSISTENCE_DRIVER=prisma`, and Redis only whe
 The API enables standard security headers and global HTTP rate limiting.
 
 ```bash
+WEB_ORIGINS="https://bilisync.top,https://www.bilisync.top"
 RATE_LIMIT_MAX=300
 RATE_LIMIT_WINDOW="1 minute"
 ```
 
-WebSocket message throttling is a separate concern and should be added before opening large public rooms.
+`WEB_ORIGINS` is the preferred comma-separated CORS allowlist for both REST and Socket.IO. `WEB_ORIGIN` remains supported for single-origin deployments.
+
+WebSocket player actions are validated and throttled per socket so noisy clients cannot flood room synchronization.
 
 ## Quality Gate
 

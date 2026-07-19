@@ -1,6 +1,7 @@
 export type AppConfig = {
   port: number;
   webOrigin: string;
+  webOrigins: string[];
   cdnBaseUrl: string;
   persistenceDriver: "memory" | "prisma";
   socketAdapter: "memory" | "redis";
@@ -11,9 +12,12 @@ export type AppConfig = {
 };
 
 export function loadConfig(): AppConfig {
+  const webOrigins = parseWebOrigins();
+
   return {
     port: Number(process.env.API_PORT ?? 4000),
-    webOrigin: process.env.WEB_ORIGIN ?? "http://localhost:5173",
+    webOrigin: webOrigins[0],
+    webOrigins,
     cdnBaseUrl: process.env.CDN_BASE_URL ?? "https://cdn.bilisync.top",
     persistenceDriver: process.env.PERSISTENCE_DRIVER === "prisma" ? "prisma" : "memory",
     socketAdapter: process.env.SOCKET_ADAPTER === "redis" ? "redis" : "memory",
@@ -22,4 +26,14 @@ export function loadConfig(): AppConfig {
     databaseUrl: process.env.DATABASE_URL,
     redisUrl: process.env.REDIS_URL
   };
+}
+
+function parseWebOrigins(): string[] {
+  const raw = process.env.WEB_ORIGINS ?? process.env.WEB_ORIGIN ?? "http://localhost:5173";
+  const origins = raw
+    .split(",")
+    .map((origin) => origin.trim())
+    .filter(Boolean);
+
+  return origins.length > 0 ? origins : ["http://localhost:5173"];
 }

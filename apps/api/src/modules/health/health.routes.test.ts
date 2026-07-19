@@ -111,6 +111,7 @@ function baseConfig(overrides: Partial<AppConfig> = {}): AppConfig {
   return {
     port: 4000,
     webOrigin: "http://localhost:5173",
+    webOrigins: ["http://localhost:5173"],
     cdnBaseUrl: "https://cdn.bilisync.top",
     persistenceDriver: "memory",
     socketAdapter: "memory",

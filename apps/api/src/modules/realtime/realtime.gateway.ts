@@ -62,7 +62,7 @@ export function registerRealtimeGateway(
   httpServer: HttpServer,
   rooms: RoomStore,
   presence: PresenceStore,
-  corsOrigin: string
+  corsOrigin: string | string[]
 ) {
   const io = new Server(httpServer, {
     cors: {

@@ -36,7 +36,7 @@ const app = Fastify({
 });
 
 await app.register(cors, {
-  origin: config.webOrigin,
+  origin: config.webOrigins,
   credentials: true
 });
 await app.register(helmet, {
@@ -96,7 +96,7 @@ await registerVideoRoutes(app, videos);
 await registerCacheJobRoutes(app, cacheJobs);
 await registerRoomRoutes(app, rooms, videos);
 
-const io = registerRealtimeGateway(app.server, rooms, presence, config.webOrigin);
+const io = registerRealtimeGateway(app.server, rooms, presence, config.webOrigins);
 const unregisterCacheJobGateway = registerCacheJobGateway(io, cacheJobNotifier);
 let closeRedisSocketAdapter: (() => Promise<void>) | undefined;
 

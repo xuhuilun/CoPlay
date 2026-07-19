@@ -23,6 +23,7 @@ services:
     environment:
       API_PORT: 4000
       WEB_ORIGIN: http://localhost
+      WEB_ORIGINS: http://localhost,http://127.0.0.1
       MYSQL_HOST: mysql
       MYSQL_PORT: 3306
       MYSQL_DATABASE: coplay

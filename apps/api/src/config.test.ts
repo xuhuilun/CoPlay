@@ -1,0 +1,60 @@
+import assert from "node:assert/strict";
+import test from "node:test";
+import { loadConfig } from "./config.js";
+
+test("loadConfig uses WEB_ORIGINS as a comma separated CORS allowlist", () => {
+  withEnv(
+    {
+      WEB_ORIGIN: "http://localhost:5173",
+      WEB_ORIGINS: "http://localhost:5173, http://127.0.0.1:5175"
+    },
+    () => {
+      const config = loadConfig();
+
+      assert.equal(config.webOrigin, "http://localhost:5173");
+      assert.deepEqual(config.webOrigins, ["http://localhost:5173", "http://127.0.0.1:5175"]);
+    }
+  );
+});
+
+test("loadConfig keeps WEB_ORIGIN compatibility when WEB_ORIGINS is absent", () => {
+  withEnv({ WEB_ORIGIN: "https://bilisync.top", WEB_ORIGINS: undefined }, () => {
+    const config = loadConfig();
+
+    assert.equal(config.webOrigin, "https://bilisync.top");
+    assert.deepEqual(config.webOrigins, ["https://bilisync.top"]);
+  });
+});
+
+test("loadConfig falls back to the local web origin when origins are empty", () => {
+  withEnv({ WEB_ORIGIN: undefined, WEB_ORIGINS: " , " }, () => {
+    const config = loadConfig();
+
+    assert.equal(config.webOrigin, "http://localhost:5173");
+    assert.deepEqual(config.webOrigins, ["http://localhost:5173"]);
+  });
+});
+
+function withEnv(values: Record<string, string | undefined>, run: () => void) {
+  const previous = new Map<string, string | undefined>();
+  for (const [key, value] of Object.entries(values)) {
+    previous.set(key, process.env[key]);
+    if (value === undefined) {
+      delete process.env[key];
+    } else {
+      process.env[key] = value;
+    }
+  }
+
+  try {
+    run();
+  } finally {
+    for (const [key, value] of previous) {
+      if (value === undefined) {
+        delete process.env[key];
+      } else {
+        process.env[key] = value;
+      }
+    }
+  }
+}
