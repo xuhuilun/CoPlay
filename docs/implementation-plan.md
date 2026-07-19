@@ -38,6 +38,7 @@ Progress:
 - API CORS configuration supports comma-separated `WEB_ORIGINS` while keeping `WEB_ORIGIN` compatibility.
 - API numeric environment settings fall back to safe defaults when invalid.
 - Cache job WebSocket subscriptions validate payload shape before joining progress channels.
+- Web routing includes a polished 404 fallback for unknown paths.
 
 ## Phase 3: Production Integrations
 

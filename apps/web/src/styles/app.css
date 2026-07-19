@@ -232,6 +232,10 @@ main {
   width: 100%;
 }
 
+.state-action {
+  margin-top: 8px;
+}
+
 .cache-console {
   display: grid;
   align-content: space-between;
