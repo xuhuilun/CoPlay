@@ -30,6 +30,7 @@ Progress:
 - GitHub Actions CI runs install, Prisma generate, tests, typecheck, build, and production dependency audit.
 - API returns `x-request-id` for request tracing across logs and clients.
 - Realtime socket events validate payload shape and throttle high-frequency player actions.
+- Room REST routes have Fastify injection tests for create, join, validation, missing resources, and capacity limits.
 
 ## Phase 3: Production Integrations
 
