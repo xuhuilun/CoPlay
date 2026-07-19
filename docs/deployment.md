@@ -40,6 +40,19 @@ RATE_LIMIT_WINDOW="1 minute"
 
 WebSocket message throttling is a separate concern and should be added before opening large public rooms.
 
+## Quality Gate
+
+GitHub Actions runs the same core checks used locally:
+
+```bash
+npm ci
+npm run prisma:generate -w apps/api
+npm test
+npm run typecheck
+npm run build
+npm audit --omit=dev
+```
+
 ## Local Commands
 
 ```bash

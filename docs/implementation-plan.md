@@ -27,6 +27,7 @@ Progress:
 - Backend policy tests cover room synchronization rules and memory presence counting.
 - Guests can edit their local room nickname without requiring login.
 - Initial Prisma migration SQL is committed for production review and deploy.
+- GitHub Actions CI runs install, Prisma generate, tests, typecheck, build, and production dependency audit.
 
 ## Phase 3: Production Integrations
 
