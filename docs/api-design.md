@@ -48,6 +48,18 @@ Namespace: default Socket.IO namespace.
 
 `video:switch-event` carries the new reference `PlayerState`. Clients must load `videoId` from the video API before applying playback state.
 
+### WebSocket Guardrails
+
+Realtime client-to-server events are validated before touching room state:
+
+- Common IDs (`roomId`, `guestId`, `videoId`) must be non-empty strings up to 128 characters.
+- `nickname` must be a non-empty string up to 32 characters.
+- `player:action.currentTime` must be finite and between 0 seconds and 24 hours.
+- `player:action.playbackRate` must be finite and between `0.25` and `3`.
+- `player:action.action` only accepts `play`, `pause`, `seek`, or `sync-progress`.
+
+Invalid events return `room:error` and are ignored. `player:action` is limited to 12 events per socket per second to protect room synchronization from noisy clients.
+
 `cache-job:subscribe` payload:
 
 ```json

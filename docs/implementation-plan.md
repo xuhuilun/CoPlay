@@ -29,6 +29,7 @@ Progress:
 - Initial Prisma migration SQL is committed for production review and deploy.
 - GitHub Actions CI runs install, Prisma generate, tests, typecheck, build, and production dependency audit.
 - API returns `x-request-id` for request tracing across logs and clients.
+- Realtime socket events validate payload shape and throttle high-frequency player actions.
 
 ## Phase 3: Production Integrations
 
