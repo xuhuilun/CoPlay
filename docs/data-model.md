@@ -6,6 +6,8 @@ This document records the durable MySQL model used by CoPlay. Runtime repositori
 
 ## Tables
 
+Initial migration: `apps/api/prisma/migrations/20260719000100_init/migration.sql`.
+
 ### `Video`
 
 Stores cached video metadata. `cdnUrl` is the direct CDN playback URL; the web/API server does not proxy video content.

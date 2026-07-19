@@ -56,6 +56,12 @@ npm run prisma:migrate -w apps/api
 npm run db:seed -w apps/api
 ```
 
+Production migration:
+
+```bash
+npm exec -w apps/api -- prisma migrate deploy --schema prisma/schema.prisma
+```
+
 To run the API against MySQL, set:
 
 ```bash

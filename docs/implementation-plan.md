@@ -26,6 +26,7 @@ Progress:
 - API has baseline HTTP security headers and global rate limiting.
 - Backend policy tests cover room synchronization rules and memory presence counting.
 - Guests can edit their local room nickname without requiring login.
+- Initial Prisma migration SQL is committed for production review and deploy.
 
 ## Phase 3: Production Integrations
 
