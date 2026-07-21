@@ -24,6 +24,21 @@ test("POST /api/cache-jobs creates a cache job", async () => {
   await app.close();
 });
 
+test("POST /api/cache-jobs accepts Bilibili short links", async () => {
+  const { app } = await createCacheJobRoutesTestApp();
+
+  const response = await app.inject({
+    method: "POST",
+    url: "/api/cache-jobs",
+    payload: { sourceUrl: "https://b23.tv/example" }
+  });
+
+  assert.equal(response.statusCode, 201);
+  assert.equal(response.json().sourceUrl, "https://b23.tv/example");
+
+  await app.close();
+});
+
 test("POST /api/cache-jobs normalizes source URLs", async () => {
   const { app } = await createCacheJobRoutesTestApp();
   const sourceUrl = "https://www.bilibili.com/video/BV1xx411c7mD";
@@ -50,6 +65,14 @@ test("POST /api/cache-jobs rejects invalid URLs", async () => {
   });
 
   assert.equal(response.statusCode, 400);
+
+  const unsupportedHost = await app.inject({
+    method: "POST",
+    url: "/api/cache-jobs",
+    payload: { sourceUrl: "https://example.com/video/BV1xx411c7mD" }
+  });
+
+  assert.equal(unsupportedHost.statusCode, 400);
 
   const blank = await app.inject({
     method: "POST",

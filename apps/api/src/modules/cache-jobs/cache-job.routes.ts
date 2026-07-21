@@ -4,8 +4,17 @@ import { parseRouteId } from "../../shared/rest-params.js";
 import type { CacheJobStore } from "./cache-job.store.js";
 
 const createCacheJobSchema = z.object({
-  sourceUrl: z.string().trim().url()
+  sourceUrl: z.string().trim().url().refine(isSupportedBilibiliUrl)
 });
+
+function isSupportedBilibiliUrl(value: string): boolean {
+  try {
+    const hostname = new URL(value).hostname.toLowerCase();
+    return hostname === "bilibili.com" || hostname.endsWith(".bilibili.com") || hostname === "b23.tv";
+  } catch {
+    return false;
+  }
+}
 
 export async function registerCacheJobRoutes(app: FastifyInstance, jobs: CacheJobStore) {
   app.post("/api/cache-jobs", async (request, reply) => {
