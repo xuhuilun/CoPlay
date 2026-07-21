@@ -24,6 +24,22 @@ test("POST /api/cache-jobs creates a cache job", async () => {
   await app.close();
 });
 
+test("POST /api/cache-jobs normalizes source URLs", async () => {
+  const { app } = await createCacheJobRoutesTestApp();
+  const sourceUrl = "https://www.bilibili.com/video/BV1xx411c7mD";
+
+  const response = await app.inject({
+    method: "POST",
+    url: "/api/cache-jobs",
+    payload: { sourceUrl: ` ${sourceUrl} ` }
+  });
+
+  assert.equal(response.statusCode, 201);
+  assert.equal(response.json().sourceUrl, sourceUrl);
+
+  await app.close();
+});
+
 test("POST /api/cache-jobs rejects invalid URLs", async () => {
   const { app } = await createCacheJobRoutesTestApp();
 
@@ -34,6 +50,14 @@ test("POST /api/cache-jobs rejects invalid URLs", async () => {
   });
 
   assert.equal(response.statusCode, 400);
+
+  const blank = await app.inject({
+    method: "POST",
+    url: "/api/cache-jobs",
+    payload: { sourceUrl: " " }
+  });
+
+  assert.equal(blank.statusCode, 400);
 
   await app.close();
 });

@@ -46,6 +46,7 @@ Progress:
 - Host video switching clears stale selected video IDs after switch requests and switch events.
 - REST route ID parameters are normalized consistently before video, room, join, and cache-job lookups.
 - Room create and join REST payload IDs are normalized before validation and persistence.
+- Cache job source URLs are trimmed before validation and persistence.
 
 ## Phase 3: Production Integrations
 

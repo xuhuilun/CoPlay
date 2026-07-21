@@ -4,7 +4,7 @@ import { parseRouteId } from "../../shared/rest-params.js";
 import type { CacheJobStore } from "./cache-job.store.js";
 
 const createCacheJobSchema = z.object({
-  sourceUrl: z.string().url()
+  sourceUrl: z.string().trim().url()
 });
 
 export async function registerCacheJobRoutes(app: FastifyInstance, jobs: CacheJobStore) {
