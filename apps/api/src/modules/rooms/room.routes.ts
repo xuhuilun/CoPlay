@@ -5,17 +5,18 @@ import type { VideoStore } from "../videos/video.store.js";
 import type { RoomStore } from "./room.store.js";
 
 const nicknameSchema = z.string().trim().min(1).transform((value) => value.slice(0, 24));
+const bodyIdSchema = z.string().trim().min(1).max(128);
 
 const createRoomSchema = z.object({
-  videoId: z.string().min(1),
+  videoId: bodyIdSchema,
   type: z.enum(["couple", "screening"]),
-  ownerGuestId: z.string().min(1),
+  ownerGuestId: bodyIdSchema,
   ownerNickname: nicknameSchema.default("游客"),
   maxMembers: z.number().int().min(2).max(100).default(8)
 });
 
 const joinRoomSchema = z.object({
-  guestId: z.string().min(1),
+  guestId: bodyIdSchema,
   nickname: nicknameSchema.default("游客")
 });
 

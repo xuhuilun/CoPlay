@@ -20,6 +20,8 @@ Base path: `/api`
 
 REST route `:id` parameters are trimmed before lookup. Blank or whitespace-only IDs return `400`; syntactically non-empty but missing resources still return `404`.
 
+Room REST body IDs (`videoId`, `ownerGuestId`, `guestId`) are trimmed, must be non-empty, and are capped at 128 characters before they reach room state.
+
 Room nicknames are trimmed and capped at 24 characters on create, join, and realtime join events.
 
 ## WebSocket Events

@@ -73,6 +73,29 @@ test("POST /api/rooms normalizes owner nicknames", async () => {
   await app.close();
 });
 
+test("POST /api/rooms normalizes body ids", async () => {
+  const { app, videoId } = await createRoomRoutesTestApp();
+
+  const response = await app.inject({
+    method: "POST",
+    url: "/api/rooms",
+    payload: {
+      videoId: ` ${videoId} `,
+      type: "screening",
+      ownerGuestId: " host ",
+      ownerNickname: "Host",
+      maxMembers: 8
+    }
+  });
+
+  assert.equal(response.statusCode, 201);
+  assert.equal(response.json().videoId, videoId);
+  assert.equal(response.json().hostGuestId, "host");
+  assert.equal(response.json().members[0].guestId, "host");
+
+  await app.close();
+});
+
 test("POST /api/rooms rejects invalid payloads and unknown videos", async () => {
   const { app } = await createRoomRoutesTestApp();
 
@@ -82,6 +105,19 @@ test("POST /api/rooms rejects invalid payloads and unknown videos", async () => 
     payload: { videoId: "", type: "screening", ownerGuestId: "host" }
   });
   assert.equal(invalidPayload.statusCode, 400);
+
+  const blankIdPayload = await app.inject({
+    method: "POST",
+    url: "/api/rooms",
+    payload: {
+      videoId: " ",
+      type: "screening",
+      ownerGuestId: " ",
+      ownerNickname: "Host",
+      maxMembers: 8
+    }
+  });
+  assert.equal(blankIdPayload.statusCode, 400);
 
   const unknownVideo = await app.inject({
     method: "POST",
@@ -125,6 +161,36 @@ test("POST /api/rooms/:id/join normalizes guest nicknames", async () => {
   assert.equal(
     joined.json().members.find((member: { guestId: string }) => member.guestId === "guest_a")?.nickname,
     "B".repeat(24)
+  );
+
+  await app.close();
+});
+
+test("POST /api/rooms/:id/join normalizes body ids", async () => {
+  const { app, videoId } = await createRoomRoutesTestApp();
+
+  const created = await app.inject({
+    method: "POST",
+    url: "/api/rooms",
+    payload: {
+      videoId,
+      type: "screening",
+      ownerGuestId: "host",
+      ownerNickname: "Host",
+      maxMembers: 8
+    }
+  });
+  const room = created.json();
+
+  const joined = await app.inject({
+    method: "POST",
+    url: `/api/rooms/${room.id}/join`,
+    payload: { guestId: " guest_a ", nickname: "Guest A" }
+  });
+
+  assert.equal(joined.statusCode, 200);
+  assert.ok(
+    joined.json().members.find((member: { guestId: string }) => member.guestId === "guest_a")
   );
 
   await app.close();
@@ -228,6 +294,13 @@ test("POST /api/rooms/:id/join rejects malformed requests and missing rooms", as
     payload: { guestId: "" }
   });
   assert.equal(invalidPayload.statusCode, 400);
+
+  const blankGuestId = await app.inject({
+    method: "POST",
+    url: "/api/rooms/missing_room/join",
+    payload: { guestId: " ", nickname: "Guest A" }
+  });
+  assert.equal(blankGuestId.statusCode, 400);
 
   const missingRoom = await app.inject({
     method: "POST",

@@ -45,6 +45,7 @@ Progress:
 - Room nicknames are normalized server-side across REST and realtime joins.
 - Host video switching clears stale selected video IDs after switch requests and switch events.
 - REST route ID parameters are normalized consistently before video, room, join, and cache-job lookups.
+- Room create and join REST payload IDs are normalized before validation and persistence.
 
 ## Phase 3: Production Integrations
 
