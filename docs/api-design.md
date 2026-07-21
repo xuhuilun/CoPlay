@@ -84,3 +84,5 @@ Invalid events return `room:error` and are ignored. `player:action` is limited t
 The web client generates the invite text from the current full URL:
 
 `快来加入我的房间一起玩吧！ <current-url>`
+
+If browser clipboard access is unavailable, the room page shows the same invite text in a read-only field for manual copying.

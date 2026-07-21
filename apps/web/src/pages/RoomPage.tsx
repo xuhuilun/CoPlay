@@ -36,6 +36,7 @@ export function RoomPage() {
   const [onlineGuestIds, setOnlineGuestIds] = useState<string[]>([]);
   const [notice, setNotice] = useState("同步状态待连接");
   const [copied, setCopied] = useState(false);
+  const [manualInviteText, setManualInviteText] = useState("");
   const [isPaused, setIsPaused] = useState(true);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
@@ -182,9 +183,11 @@ export function RoomPage() {
     try {
       await navigator.clipboard.writeText(text);
       setCopied(true);
+      setManualInviteText("");
       window.setTimeout(() => setCopied(false), 1600);
     } catch {
-      setNotice("邀请链接复制失败");
+      setManualInviteText(text);
+      setNotice("复制受限，请手动复制邀请消息");
     }
   }
 
@@ -372,6 +375,15 @@ export function RoomPage() {
           <Copy size={18} />
           {copied ? "已复制邀请" : "邀请好友"}
         </button>
+        {manualInviteText && (
+          <textarea
+            className="invite-fallback"
+            aria-label="邀请消息"
+            readOnly
+            value={manualInviteText}
+            onFocus={(event) => event.currentTarget.select()}
+          />
+        )}
         <div className="nickname-editor">
           <input
             aria-label="昵称"

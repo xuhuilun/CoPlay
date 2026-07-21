@@ -49,6 +49,7 @@ Progress:
 - Cache job source URLs are trimmed before validation and persistence.
 - Cache job creation rejects non-Bilibili source URLs before creating work.
 - The web cache submission form validates Bilibili URLs before sending cache job requests.
+- Room invites fall back to a manual copy field when browser clipboard access is unavailable.
 
 ## Phase 3: Production Integrations
 
