@@ -77,13 +77,18 @@ export function HomePage() {
 
   async function submitCacheJob(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    const normalizedSourceUrl = sourceUrl.trim();
+    if (!isSupportedBilibiliUrl(normalizedSourceUrl)) {
+      setJobError("请粘贴 bilibili.com 或 b23.tv 的 B 站视频链接");
+      return;
+    }
     setIsSubmittingJob(true);
     setJobError("");
     try {
-      const next = await api.createCacheJob(sourceUrl);
+      const next = await api.createCacheJob(normalizedSourceUrl);
       setJob(next);
     } catch {
-      setJobError("缓存任务提交失败，请稍后重试");
+      setJobError("缓存任务提交失败，请确认链接来自 B 站后重试");
     } finally {
       setIsSubmittingJob(false);
     }
@@ -121,11 +126,15 @@ export function HomePage() {
           </div>
           <input
             value={sourceUrl}
-            onChange={(event) => setSourceUrl(event.target.value)}
+            onChange={(event) => {
+              setSourceUrl(event.target.value);
+              setJobError("");
+            }}
             placeholder="粘贴 B 站视频链接"
             type="url"
             required
           />
+          <p className="field-hint">支持 bilibili.com 视频链接和 b23.tv 短链</p>
           <button className="primary-button" type="submit" disabled={isSubmittingJob}>
             {isSubmittingJob ? <Loader2 className="spin" size={18} /> : <UploadCloud size={18} />}
             {isSubmittingJob ? "提交中" : "缓存到 CDN"}
@@ -172,4 +181,13 @@ export function HomePage() {
       </div>
     </section>
   );
+}
+
+function isSupportedBilibiliUrl(value: string): boolean {
+  try {
+    const hostname = new URL(value).hostname.toLowerCase();
+    return hostname === "bilibili.com" || hostname.endsWith(".bilibili.com") || hostname === "b23.tv";
+  } catch {
+    return false;
+  }
 }

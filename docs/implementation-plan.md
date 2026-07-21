@@ -48,6 +48,7 @@ Progress:
 - Room create and join REST payload IDs are normalized before validation and persistence.
 - Cache job source URLs are trimmed before validation and persistence.
 - Cache job creation rejects non-Bilibili source URLs before creating work.
+- The web cache submission form validates Bilibili URLs before sending cache job requests.
 
 ## Phase 3: Production Integrations
 
