@@ -45,6 +45,16 @@ test("GET /api/videos searches title, description, and tags", async () => {
     ["海岸慢镜"]
   );
 
+  const normalized = await app.inject({
+    method: "GET",
+    url: "/api/videos?query=%20OCEAN%20"
+  });
+  assert.equal(normalized.statusCode, 200);
+  assert.deepEqual(
+    normalized.json().items.map((video: { title: string }) => video.title),
+    ["海岸慢镜"]
+  );
+
   await app.close();
 });
 

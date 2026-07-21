@@ -22,6 +22,8 @@ REST route `:id` parameters are trimmed before lookup. Blank or whitespace-only 
 
 Room REST body IDs (`videoId`, `ownerGuestId`, `guestId`) are trimmed, must be non-empty, and are capped at 128 characters before they reach room state.
 
+Video search `query` values are trimmed and matched case-insensitively against title, description, and tags.
+
 Cache job `sourceUrl` values are trimmed before URL validation and persistence. Cache requests only accept Bilibili sources: `bilibili.com` subdomains and `b23.tv` short links.
 
 Room nicknames are trimmed and capped at 24 characters on create, join, and realtime join events.

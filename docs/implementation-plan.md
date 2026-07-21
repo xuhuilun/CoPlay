@@ -35,6 +35,7 @@ Progress:
 - Health routes have Fastify injection tests for live checks, memory readiness, dependency success, and dependency failure.
 - Cache job REST routes have Fastify injection tests for create, invalid URL, detail, and missing job behavior.
 - Video REST routes have Fastify injection tests for hot ranking, search, detail, and missing video behavior.
+- Video search normalization is covered for padded and case-insensitive queries.
 - API CORS configuration supports comma-separated `WEB_ORIGINS` while keeping `WEB_ORIGIN` compatibility.
 - API numeric environment settings fall back to safe defaults when invalid.
 - Cache job WebSocket subscriptions validate payload shape before joining progress channels.
