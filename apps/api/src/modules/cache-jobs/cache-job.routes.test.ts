@@ -53,6 +53,26 @@ test("GET /api/cache-jobs/:id returns an existing cache job", async () => {
   await app.close();
 });
 
+test("GET /api/cache-jobs/:id normalizes route ids", async () => {
+  const { app, jobs } = await createCacheJobRoutesTestApp();
+  const created = await jobs.create("https://www.bilibili.com/video/BV1xx411c7mD");
+
+  const padded = await app.inject({
+    method: "GET",
+    url: `/api/cache-jobs/${encodeURIComponent(` ${created.id} `)}`
+  });
+  assert.equal(padded.statusCode, 200);
+  assert.deepEqual(padded.json(), created);
+
+  const blank = await app.inject({
+    method: "GET",
+    url: "/api/cache-jobs/%20"
+  });
+  assert.equal(blank.statusCode, 400);
+
+  await app.close();
+});
+
 test("GET /api/cache-jobs/:id returns 404 for missing cache jobs", async () => {
   const { app } = await createCacheJobRoutesTestApp();
 

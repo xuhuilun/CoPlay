@@ -130,6 +130,60 @@ test("POST /api/rooms/:id/join normalizes guest nicknames", async () => {
   await app.close();
 });
 
+test("room detail and join normalize route ids", async () => {
+  const { app, videoId } = await createRoomRoutesTestApp();
+
+  const created = await app.inject({
+    method: "POST",
+    url: "/api/rooms",
+    payload: {
+      videoId,
+      type: "screening",
+      ownerGuestId: "host",
+      ownerNickname: "Host",
+      maxMembers: 8
+    }
+  });
+  const room = created.json();
+  const paddedRoomId = encodeURIComponent(` ${room.id} `);
+
+  const detail = await app.inject({
+    method: "GET",
+    url: `/api/rooms/${paddedRoomId}`
+  });
+  assert.equal(detail.statusCode, 200);
+  assert.equal(detail.json().id, room.id);
+
+  const joined = await app.inject({
+    method: "POST",
+    url: `/api/rooms/${paddedRoomId}/join`,
+    payload: { guestId: "guest_a", nickname: "Guest A" }
+  });
+  assert.equal(joined.statusCode, 200);
+  assert.equal(joined.json().members.length, 2);
+
+  await app.close();
+});
+
+test("room route ids reject blank values", async () => {
+  const { app } = await createRoomRoutesTestApp();
+
+  const detail = await app.inject({
+    method: "GET",
+    url: "/api/rooms/%20"
+  });
+  assert.equal(detail.statusCode, 400);
+
+  const joined = await app.inject({
+    method: "POST",
+    url: "/api/rooms/%20/join",
+    payload: { guestId: "guest_a", nickname: "Guest A" }
+  });
+  assert.equal(joined.statusCode, 400);
+
+  await app.close();
+});
+
 test("POST /api/rooms/:id/join joins guests and enforces capacity", async () => {
   const { app, videoId } = await createRoomRoutesTestApp();
 

@@ -1,5 +1,6 @@
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
+import { parseRouteId } from "../../shared/rest-params.js";
 import type { VideoStore } from "../videos/video.store.js";
 import type { RoomStore } from "./room.store.js";
 
@@ -35,7 +36,11 @@ export async function registerRoomRoutes(
   });
 
   app.get<{ Params: { id: string } }>("/api/rooms/:id", async (request, reply) => {
-    const room = await rooms.findById(request.params.id);
+    const id = parseRouteId(request.params.id, reply);
+    if (!id) {
+      return;
+    }
+    const room = await rooms.findById(id);
     if (!room) {
       return reply.notFound("Room not found");
     }
@@ -47,8 +52,12 @@ export async function registerRoomRoutes(
     if (!parsed.success) {
       return reply.badRequest("Invalid join payload");
     }
+    const id = parseRouteId(request.params.id, reply);
+    if (!id) {
+      return;
+    }
     try {
-      const room = await rooms.join(request.params.id, parsed.data.guestId, parsed.data.nickname);
+      const room = await rooms.join(id, parsed.data.guestId, parsed.data.nickname);
       if (!room) {
         return reply.notFound("Room not found");
       }

@@ -1,4 +1,5 @@
 import type { FastifyInstance } from "fastify";
+import { parseRouteId } from "../../shared/rest-params.js";
 import type { VideoStore } from "./video.store.js";
 
 export async function registerVideoRoutes(app: FastifyInstance, videos: VideoStore) {
@@ -9,7 +10,11 @@ export async function registerVideoRoutes(app: FastifyInstance, videos: VideoSto
   }));
 
   app.get<{ Params: { id: string } }>("/api/videos/:id", async (request, reply) => {
-    const video = await videos.findById(request.params.id);
+    const id = parseRouteId(request.params.id, reply);
+    if (!id) {
+      return;
+    }
+    const video = await videos.findById(id);
     if (!video) {
       return reply.notFound("Video not found");
     }

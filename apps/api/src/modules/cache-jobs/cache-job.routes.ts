@@ -1,5 +1,6 @@
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
+import { parseRouteId } from "../../shared/rest-params.js";
 import type { CacheJobStore } from "./cache-job.store.js";
 
 const createCacheJobSchema = z.object({
@@ -16,7 +17,11 @@ export async function registerCacheJobRoutes(app: FastifyInstance, jobs: CacheJo
   });
 
   app.get<{ Params: { id: string } }>("/api/cache-jobs/:id", async (request, reply) => {
-    const job = await jobs.findById(request.params.id);
+    const id = parseRouteId(request.params.id, reply);
+    if (!id) {
+      return;
+    }
+    const job = await jobs.findById(id);
     if (!job) {
       return reply.notFound("Cache job not found");
     }

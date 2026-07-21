@@ -18,6 +18,8 @@ Base path: `/api`
 | GET | `/rooms/:id` | Read room detail |
 | POST | `/rooms/:id/join` | Join room as guest |
 
+REST route `:id` parameters are trimmed before lookup. Blank or whitespace-only IDs return `400`; syntactically non-empty but missing resources still return `404`.
+
 Room nicknames are trimmed and capped at 24 characters on create, join, and realtime join events.
 
 ## WebSocket Events

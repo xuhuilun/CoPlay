@@ -65,6 +65,27 @@ test("GET /api/videos/:id returns video detail", async () => {
   await app.close();
 });
 
+test("GET /api/videos/:id normalizes route ids", async () => {
+  const { app, videos } = await createVideoRoutesTestApp();
+  const [video] = videos.hot();
+  assert.ok(video);
+
+  const padded = await app.inject({
+    method: "GET",
+    url: `/api/videos/${encodeURIComponent(` ${video.id} `)}`
+  });
+  assert.equal(padded.statusCode, 200);
+  assert.equal(padded.json().id, video.id);
+
+  const blank = await app.inject({
+    method: "GET",
+    url: "/api/videos/%20"
+  });
+  assert.equal(blank.statusCode, 400);
+
+  await app.close();
+});
+
 test("GET /api/videos/:id returns 404 for missing videos", async () => {
   const { app } = await createVideoRoutesTestApp();
 

@@ -44,6 +44,7 @@ Progress:
 - Host video switching controls show loading, unavailable, and empty states before enabling switches.
 - Room nicknames are normalized server-side across REST and realtime joins.
 - Host video switching clears stale selected video IDs after switch requests and switch events.
+- REST route ID parameters are normalized consistently before video, room, join, and cache-job lookups.
 
 ## Phase 3: Production Integrations
 
