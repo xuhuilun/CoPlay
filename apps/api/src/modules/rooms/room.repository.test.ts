@@ -80,6 +80,31 @@ test("screening room accepts host player state as reference", () => {
   assert.equal(updated?.playerState.updatedBy, "host");
 });
 
+test("screening room only lets host switch videos", () => {
+  const rooms = new RoomRepository();
+  const room = rooms.create({
+    type: "screening",
+    videoId: "video_a",
+    ownerGuestId: "host",
+    ownerNickname: "Host",
+    maxMembers: 8
+  });
+
+  const rejected = rooms.switchVideo(room.id, "member", "video_b");
+
+  assert.equal(rejected?.videoId, "video_a");
+  assert.equal(rejected?.playerState.videoId, "video_a");
+  assert.equal(rejected?.playerState.updatedBy, "host");
+
+  const switched = rooms.switchVideo(room.id, "host", "video_b");
+
+  assert.equal(switched?.videoId, "video_b");
+  assert.equal(switched?.playerState.videoId, "video_b");
+  assert.equal(switched?.playerState.currentTime, 0);
+  assert.equal(switched?.playerState.paused, true);
+  assert.equal(switched?.playerState.updatedBy, "host");
+});
+
 test("joining again updates existing member nickname", () => {
   const rooms = new RoomRepository();
   const room = rooms.create({

@@ -42,6 +42,7 @@ Progress:
 - The web room creation form clamps screening room capacity to the supported 2-100 member range.
 - Couple room capacity is covered by repository and REST route tests to stay fixed at two members.
 - Host video switching controls show loading, unavailable, and empty states before enabling switches.
+- Host-only video switching policy is covered by backend room tests.
 - Room nicknames are normalized server-side across REST and realtime joins.
 - Host video switching clears stale selected video IDs after switch requests and switch events.
 - REST route ID parameters are normalized consistently before video, room, join, and cache-job lookups.
