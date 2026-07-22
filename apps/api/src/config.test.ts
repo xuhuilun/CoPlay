@@ -70,7 +70,7 @@ test("loadConfig falls back when string settings are blank", () => {
 });
 
 test("loadConfig normalizes enum settings", () => {
-  withEnv({ PERSISTENCE_DRIVER: " prisma ", SOCKET_ADAPTER: " redis " }, () => {
+  withEnv({ PERSISTENCE_DRIVER: " PRISMA ", SOCKET_ADAPTER: " Redis " }, () => {
     const config = loadConfig();
 
     assert.equal(config.persistenceDriver, "prisma");

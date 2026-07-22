@@ -28,7 +28,7 @@ Docker Compose starts:
 - `GET /api/health/ready`: dependency readiness.
 
 Readiness checks MySQL only when `PERSISTENCE_DRIVER=prisma`, and Redis only when `SOCKET_ADAPTER=redis`.
-Driver settings are trimmed before matching. Unknown values fall back to `memory`.
+Driver settings are trimmed and matched case-insensitively. Unknown values fall back to `memory`.
 
 ## API Safety Defaults
 

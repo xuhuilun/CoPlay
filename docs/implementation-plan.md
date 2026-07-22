@@ -39,7 +39,7 @@ Progress:
 - API CORS configuration validates comma-separated `WEB_ORIGINS` while keeping `WEB_ORIGIN` compatibility.
 - API numeric environment settings fall back to safe defaults when invalid.
 - API string environment settings trim whitespace and fall back when blank.
-- API driver environment settings trim whitespace and fall back when unknown.
+- API driver environment settings trim whitespace, match case-insensitively, and fall back when unknown.
 - API CDN base URL settings are normalized and fall back to the production CDN default when invalid.
 - API optional dependency URLs are normalized and discarded when invalid.
 - Cache job WebSocket subscriptions validate payload shape before joining progress channels.

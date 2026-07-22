@@ -57,7 +57,7 @@ function parseEnumSetting<T extends string>(
   allowed: readonly T[],
   fallback: T
 ): T {
-  const normalized = value?.trim();
+  const normalized = value?.trim().toLowerCase();
   return allowed.find((item) => item === normalized) ?? fallback;
 }
 
