@@ -6,7 +6,7 @@ test("loadConfig uses WEB_ORIGINS as a comma separated CORS allowlist", () => {
   withEnv(
     {
       WEB_ORIGIN: "http://localhost:5173",
-      WEB_ORIGINS: "http://localhost:5173, http://127.0.0.1:5175"
+      WEB_ORIGINS: " http://localhost:5173 , not-a-url, http://127.0.0.1:5175 "
     },
     () => {
       const config = loadConfig();
@@ -15,6 +15,15 @@ test("loadConfig uses WEB_ORIGINS as a comma separated CORS allowlist", () => {
       assert.deepEqual(config.webOrigins, ["http://localhost:5173", "http://127.0.0.1:5175"]);
     }
   );
+});
+
+test("loadConfig drops invalid WEB_ORIGINS entries", () => {
+  withEnv({ WEB_ORIGIN: undefined, WEB_ORIGINS: "not-a-url, https://bilisync.top" }, () => {
+    const config = loadConfig();
+
+    assert.equal(config.webOrigin, "https://bilisync.top");
+    assert.deepEqual(config.webOrigins, ["https://bilisync.top"]);
+  });
 });
 
 test("loadConfig keeps WEB_ORIGIN compatibility when WEB_ORIGINS is absent", () => {
@@ -26,8 +35,8 @@ test("loadConfig keeps WEB_ORIGIN compatibility when WEB_ORIGINS is absent", () 
   });
 });
 
-test("loadConfig falls back to the local web origin when origins are empty", () => {
-  withEnv({ WEB_ORIGIN: undefined, WEB_ORIGINS: " , " }, () => {
+test("loadConfig falls back to the local web origin when origins are empty or invalid", () => {
+  withEnv({ WEB_ORIGIN: undefined, WEB_ORIGINS: " , not-a-url " }, () => {
     const config = loadConfig();
 
     assert.equal(config.webOrigin, "http://localhost:5173");

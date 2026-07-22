@@ -36,7 +36,7 @@ Progress:
 - Cache job REST routes have Fastify injection tests for create, invalid URL, detail, and missing job behavior.
 - Video REST routes have Fastify injection tests for hot ranking, search, detail, and missing video behavior.
 - Video search normalization is covered for padded and case-insensitive queries.
-- API CORS configuration supports comma-separated `WEB_ORIGINS` while keeping `WEB_ORIGIN` compatibility.
+- API CORS configuration validates comma-separated `WEB_ORIGINS` while keeping `WEB_ORIGIN` compatibility.
 - API numeric environment settings fall back to safe defaults when invalid.
 - API string environment settings trim whitespace and fall back when blank.
 - API driver environment settings trim whitespace and fall back when unknown.

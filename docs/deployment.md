@@ -41,7 +41,7 @@ RATE_LIMIT_WINDOW="1 minute"
 CDN_BASE_URL="https://cdn.bilisync.top"
 ```
 
-`WEB_ORIGINS` is the preferred comma-separated CORS allowlist for both REST and Socket.IO. `WEB_ORIGIN` remains supported for single-origin deployments.
+`WEB_ORIGINS` is the preferred comma-separated CORS allowlist for both REST and Socket.IO. `WEB_ORIGIN` remains supported for single-origin deployments. Origins are trimmed and must be valid URLs; invalid entries are ignored, and the allowlist falls back to `http://localhost:5173` when no valid origins remain.
 
 `CDN_BASE_URL` must be a valid URL. It is trimmed, normalized without a trailing slash, and falls back to `https://cdn.bilisync.top` when invalid.
 

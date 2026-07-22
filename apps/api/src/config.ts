@@ -32,8 +32,8 @@ function parseWebOrigins(): string[] {
   const raw = process.env.WEB_ORIGINS ?? process.env.WEB_ORIGIN ?? "http://localhost:5173";
   const origins = raw
     .split(",")
-    .map((origin) => origin.trim())
-    .filter(Boolean);
+    .map(parseOptionalOriginSetting)
+    .filter((origin): origin is string => Boolean(origin));
 
   return origins.length > 0 ? origins : ["http://localhost:5173"];
 }
@@ -86,4 +86,9 @@ function parseOptionalUrlSetting(value: string | undefined): string | undefined 
   } catch {
     return undefined;
   }
+}
+
+function parseOptionalOriginSetting(value: string | undefined): string | undefined {
+  const url = parseOptionalUrlSetting(value);
+  return url?.replace(/\/$/, "");
 }
