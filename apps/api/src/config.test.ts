@@ -44,6 +44,22 @@ test("loadConfig parses valid positive integer settings", () => {
   });
 });
 
+test("loadConfig normalizes string settings", () => {
+  withEnv({ RATE_LIMIT_WINDOW: " 30 seconds " }, () => {
+    const config = loadConfig();
+
+    assert.equal(config.rateLimitWindow, "30 seconds");
+  });
+});
+
+test("loadConfig falls back when string settings are blank", () => {
+  withEnv({ RATE_LIMIT_WINDOW: "   " }, () => {
+    const config = loadConfig();
+
+    assert.equal(config.rateLimitWindow, "1 minute");
+  });
+});
+
 test("loadConfig normalizes CDN base URLs", () => {
   withEnv({ CDN_BASE_URL: " https://cdn.example.com/assets/ " }, () => {
     const config = loadConfig();

@@ -22,7 +22,7 @@ export function loadConfig(): AppConfig {
     persistenceDriver: process.env.PERSISTENCE_DRIVER === "prisma" ? "prisma" : "memory",
     socketAdapter: process.env.SOCKET_ADAPTER === "redis" ? "redis" : "memory",
     rateLimitMax: parsePositiveInteger(process.env.RATE_LIMIT_MAX, 300),
-    rateLimitWindow: process.env.RATE_LIMIT_WINDOW ?? "1 minute",
+    rateLimitWindow: parseStringSetting(process.env.RATE_LIMIT_WINDOW, "1 minute"),
     databaseUrl: process.env.DATABASE_URL,
     redisUrl: process.env.REDIS_URL
   };
@@ -45,6 +45,11 @@ function parsePositiveInteger(value: string | undefined, fallback: number): numb
 
   const parsed = Number(value);
   return Number.isInteger(parsed) && parsed > 0 ? parsed : fallback;
+}
+
+function parseStringSetting(value: string | undefined, fallback: string): string {
+  const normalized = value?.trim();
+  return normalized || fallback;
 }
 
 function parseUrlSetting(value: string | undefined, fallback: string): string {

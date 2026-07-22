@@ -46,6 +46,8 @@ CDN_BASE_URL="https://cdn.bilisync.top"
 
 `API_PORT` and `RATE_LIMIT_MAX` must be positive integers. Invalid values fall back to `4000` and `300` so a bad environment value does not start the API with `NaN`.
 
+`RATE_LIMIT_WINDOW` is trimmed before registration. Blank values fall back to `1 minute`.
+
 WebSocket player actions are validated and throttled per socket so noisy clients cannot flood room synchronization.
 
 ## Quality Gate
