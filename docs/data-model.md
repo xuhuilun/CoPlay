@@ -26,7 +26,7 @@ Tracks user-submitted Bilibili cache tasks.
 
 Important fields:
 
-- `sourceUrl`: submitted Bilibili link.
+- `sourceUrl`: submitted Bilibili link, capped at 512 characters.
 - `status`: queued, downloading, uploading, completed, or failed.
 - `progress`: integer percentage.
 - `videoId`: set after CDN upload creates a library video.

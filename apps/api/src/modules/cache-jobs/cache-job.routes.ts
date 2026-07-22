@@ -4,7 +4,7 @@ import { parseRouteId } from "../../shared/rest-params.js";
 import type { CacheJobStore } from "./cache-job.store.js";
 
 const createCacheJobSchema = z.object({
-  sourceUrl: z.string().trim().url().refine(isSupportedBilibiliUrl)
+  sourceUrl: z.string().trim().url().max(512).refine(isSupportedBilibiliUrl)
 });
 
 function isSupportedBilibiliUrl(value: string): boolean {

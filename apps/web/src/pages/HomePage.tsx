@@ -78,6 +78,10 @@ export function HomePage() {
   async function submitCacheJob(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const normalizedSourceUrl = sourceUrl.trim();
+    if (normalizedSourceUrl.length > 512) {
+      setJobError("B 站链接过长，请确认链接不超过 512 个字符");
+      return;
+    }
     if (!isSupportedBilibiliUrl(normalizedSourceUrl)) {
       setJobError("请粘贴 bilibili.com 或 b23.tv 的 B 站视频链接");
       return;
@@ -132,9 +136,10 @@ export function HomePage() {
             }}
             placeholder="粘贴 B 站视频链接"
             type="url"
+            maxLength={512}
             required
           />
-          <p className="field-hint">支持 bilibili.com 视频链接和 b23.tv 短链</p>
+          <p className="field-hint">支持 bilibili.com 视频链接和 b23.tv 短链，最多 512 个字符</p>
           <button className="primary-button" type="submit" disabled={isSubmittingJob}>
             {isSubmittingJob ? <Loader2 className="spin" size={18} /> : <UploadCloud size={18} />}
             {isSubmittingJob ? "提交中" : "缓存到 CDN"}

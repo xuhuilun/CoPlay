@@ -74,6 +74,14 @@ test("POST /api/cache-jobs rejects invalid URLs", async () => {
 
   assert.equal(unsupportedHost.statusCode, 400);
 
+  const oversized = await app.inject({
+    method: "POST",
+    url: "/api/cache-jobs",
+    payload: { sourceUrl: `https://www.bilibili.com/video/${"a".repeat(520)}` }
+  });
+
+  assert.equal(oversized.statusCode, 400);
+
   const blank = await app.inject({
     method: "POST",
     url: "/api/cache-jobs",
