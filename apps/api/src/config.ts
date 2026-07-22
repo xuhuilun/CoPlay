@@ -19,8 +19,8 @@ export function loadConfig(): AppConfig {
     webOrigin: webOrigins[0],
     webOrigins,
     cdnBaseUrl: parseUrlSetting(process.env.CDN_BASE_URL, "https://cdn.bilisync.top"),
-    persistenceDriver: process.env.PERSISTENCE_DRIVER === "prisma" ? "prisma" : "memory",
-    socketAdapter: process.env.SOCKET_ADAPTER === "redis" ? "redis" : "memory",
+    persistenceDriver: parseEnumSetting(process.env.PERSISTENCE_DRIVER, ["memory", "prisma"], "memory"),
+    socketAdapter: parseEnumSetting(process.env.SOCKET_ADAPTER, ["memory", "redis"], "memory"),
     rateLimitMax: parsePositiveInteger(process.env.RATE_LIMIT_MAX, 300),
     rateLimitWindow: parseStringSetting(process.env.RATE_LIMIT_WINDOW, "1 minute"),
     databaseUrl: parseOptionalUrlSetting(process.env.DATABASE_URL),
@@ -50,6 +50,15 @@ function parsePositiveInteger(value: string | undefined, fallback: number): numb
 function parseStringSetting(value: string | undefined, fallback: string): string {
   const normalized = value?.trim();
   return normalized || fallback;
+}
+
+function parseEnumSetting<T extends string>(
+  value: string | undefined,
+  allowed: readonly T[],
+  fallback: T
+): T {
+  const normalized = value?.trim();
+  return allowed.find((item) => item === normalized) ?? fallback;
 }
 
 function parseUrlSetting(value: string | undefined, fallback: string): string {

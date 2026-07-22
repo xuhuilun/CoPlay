@@ -60,6 +60,24 @@ test("loadConfig falls back when string settings are blank", () => {
   });
 });
 
+test("loadConfig normalizes enum settings", () => {
+  withEnv({ PERSISTENCE_DRIVER: " prisma ", SOCKET_ADAPTER: " redis " }, () => {
+    const config = loadConfig();
+
+    assert.equal(config.persistenceDriver, "prisma");
+    assert.equal(config.socketAdapter, "redis");
+  });
+});
+
+test("loadConfig falls back when enum settings are unknown", () => {
+  withEnv({ PERSISTENCE_DRIVER: "postgres", SOCKET_ADAPTER: "nats" }, () => {
+    const config = loadConfig();
+
+    assert.equal(config.persistenceDriver, "memory");
+    assert.equal(config.socketAdapter, "memory");
+  });
+});
+
 test("loadConfig normalizes CDN base URLs", () => {
   withEnv({ CDN_BASE_URL: " https://cdn.example.com/assets/ " }, () => {
     const config = loadConfig();
