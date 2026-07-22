@@ -18,7 +18,7 @@ export function loadConfig(): AppConfig {
     port: parsePositiveInteger(process.env.API_PORT, 4000),
     webOrigin: webOrigins[0],
     webOrigins,
-    cdnBaseUrl: process.env.CDN_BASE_URL ?? "https://cdn.bilisync.top",
+    cdnBaseUrl: parseUrlSetting(process.env.CDN_BASE_URL, "https://cdn.bilisync.top"),
     persistenceDriver: process.env.PERSISTENCE_DRIVER === "prisma" ? "prisma" : "memory",
     socketAdapter: process.env.SOCKET_ADAPTER === "redis" ? "redis" : "memory",
     rateLimitMax: parsePositiveInteger(process.env.RATE_LIMIT_MAX, 300),
@@ -45,4 +45,18 @@ function parsePositiveInteger(value: string | undefined, fallback: number): numb
 
   const parsed = Number(value);
   return Number.isInteger(parsed) && parsed > 0 ? parsed : fallback;
+}
+
+function parseUrlSetting(value: string | undefined, fallback: string): string {
+  const normalized = value?.trim();
+  if (!normalized) {
+    return fallback;
+  }
+
+  try {
+    const url = new URL(normalized);
+    return url.toString().replace(/\/$/, "");
+  } catch {
+    return fallback;
+  }
 }

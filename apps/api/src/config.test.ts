@@ -44,6 +44,22 @@ test("loadConfig parses valid positive integer settings", () => {
   });
 });
 
+test("loadConfig normalizes CDN base URLs", () => {
+  withEnv({ CDN_BASE_URL: " https://cdn.example.com/assets/ " }, () => {
+    const config = loadConfig();
+
+    assert.equal(config.cdnBaseUrl, "https://cdn.example.com/assets");
+  });
+});
+
+test("loadConfig falls back when CDN base URLs are invalid", () => {
+  withEnv({ CDN_BASE_URL: "not-a-url" }, () => {
+    const config = loadConfig();
+
+    assert.equal(config.cdnBaseUrl, "https://cdn.bilisync.top");
+  });
+});
+
 test("loadConfig falls back when positive integer settings are invalid", () => {
   withEnv({ API_PORT: "not-a-port", RATE_LIMIT_MAX: "-1" }, () => {
     const config = loadConfig();

@@ -38,6 +38,7 @@ Progress:
 - Video search normalization is covered for padded and case-insensitive queries.
 - API CORS configuration supports comma-separated `WEB_ORIGINS` while keeping `WEB_ORIGIN` compatibility.
 - API numeric environment settings fall back to safe defaults when invalid.
+- API CDN base URL settings are normalized and fall back to the production CDN default when invalid.
 - Cache job WebSocket subscriptions validate payload shape before joining progress channels.
 - Web routing includes a polished 404 fallback for unknown paths.
 - The web room creation form clamps screening room capacity to the supported 2-100 member range.

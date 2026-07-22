@@ -37,9 +37,12 @@ The API enables standard security headers and global HTTP rate limiting.
 WEB_ORIGINS="https://bilisync.top,https://www.bilisync.top"
 RATE_LIMIT_MAX=300
 RATE_LIMIT_WINDOW="1 minute"
+CDN_BASE_URL="https://cdn.bilisync.top"
 ```
 
 `WEB_ORIGINS` is the preferred comma-separated CORS allowlist for both REST and Socket.IO. `WEB_ORIGIN` remains supported for single-origin deployments.
+
+`CDN_BASE_URL` must be a valid URL. It is trimmed, normalized without a trailing slash, and falls back to `https://cdn.bilisync.top` when invalid.
 
 `API_PORT` and `RATE_LIMIT_MAX` must be positive integers. Invalid values fall back to `4000` and `300` so a bad environment value does not start the API with `NaN`.
 
