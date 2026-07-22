@@ -40,6 +40,7 @@ Progress:
 - API numeric environment settings fall back to safe defaults when invalid.
 - API string environment settings trim whitespace and fall back when blank.
 - API CDN base URL settings are normalized and fall back to the production CDN default when invalid.
+- API optional dependency URLs are normalized and discarded when invalid.
 - Cache job WebSocket subscriptions validate payload shape before joining progress channels.
 - Web routing includes a polished 404 fallback for unknown paths.
 - The web room creation form clamps screening room capacity to the supported 2-100 member range.

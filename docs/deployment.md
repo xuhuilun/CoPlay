@@ -96,6 +96,8 @@ PERSISTENCE_DRIVER=prisma
 DATABASE_URL=mysql://coplay:coplay_password@mysql:3306/coplay
 ```
 
+`DATABASE_URL` is trimmed and must be a valid URL. Invalid values are ignored so Prisma mode fails with an explicit missing dependency instead of receiving a malformed URL.
+
 The default remains `PERSISTENCE_DRIVER=memory` so local development still works without a running database.
 
 To run multiple API instances behind Nginx, enable the Socket.IO Redis adapter:
@@ -106,6 +108,8 @@ REDIS_URL=redis://redis:6379
 ```
 
 Keep `SOCKET_ADAPTER=memory` for single-instance development.
+
+`REDIS_URL` is trimmed and must be a valid URL. Invalid values are ignored so Redis mode fails before opening a malformed client connection.
 
 Docker:
 

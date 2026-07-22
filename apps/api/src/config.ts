@@ -23,8 +23,8 @@ export function loadConfig(): AppConfig {
     socketAdapter: process.env.SOCKET_ADAPTER === "redis" ? "redis" : "memory",
     rateLimitMax: parsePositiveInteger(process.env.RATE_LIMIT_MAX, 300),
     rateLimitWindow: parseStringSetting(process.env.RATE_LIMIT_WINDOW, "1 minute"),
-    databaseUrl: process.env.DATABASE_URL,
-    redisUrl: process.env.REDIS_URL
+    databaseUrl: parseOptionalUrlSetting(process.env.DATABASE_URL),
+    redisUrl: parseOptionalUrlSetting(process.env.REDIS_URL)
   };
 }
 
@@ -63,5 +63,18 @@ function parseUrlSetting(value: string | undefined, fallback: string): string {
     return url.toString().replace(/\/$/, "");
   } catch {
     return fallback;
+  }
+}
+
+function parseOptionalUrlSetting(value: string | undefined): string | undefined {
+  const normalized = value?.trim();
+  if (!normalized) {
+    return undefined;
+  }
+
+  try {
+    return new URL(normalized).toString();
+  } catch {
+    return undefined;
   }
 }

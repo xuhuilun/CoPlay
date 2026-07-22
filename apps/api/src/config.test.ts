@@ -76,6 +76,30 @@ test("loadConfig falls back when CDN base URLs are invalid", () => {
   });
 });
 
+test("loadConfig normalizes optional dependency URLs", () => {
+  withEnv(
+    {
+      DATABASE_URL: " mysql://coplay:password@mysql:3306/coplay ",
+      REDIS_URL: " redis://redis:6379 "
+    },
+    () => {
+      const config = loadConfig();
+
+      assert.equal(config.databaseUrl, "mysql://coplay:password@mysql:3306/coplay");
+      assert.equal(config.redisUrl, "redis://redis:6379");
+    }
+  );
+});
+
+test("loadConfig drops invalid optional dependency URLs", () => {
+  withEnv({ DATABASE_URL: "not-a-url", REDIS_URL: " " }, () => {
+    const config = loadConfig();
+
+    assert.equal(config.databaseUrl, undefined);
+    assert.equal(config.redisUrl, undefined);
+  });
+});
+
 test("loadConfig falls back when positive integer settings are invalid", () => {
   withEnv({ API_PORT: "not-a-port", RATE_LIMIT_MAX: "-1" }, () => {
     const config = loadConfig();
