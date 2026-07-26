@@ -18,3 +18,12 @@ export type CacheJob = {
   createdAt: string;
   updatedAt: string;
 };
+
+/** A cache job without the `submitter` field, safe to return to non-admin clients. */
+export type PublicCacheJob = Omit<CacheJob, "submitter">;
+
+/** Strips submitter identity (which includes client IPs) before crossing the public boundary. */
+export function toPublicCacheJob(job: CacheJob): PublicCacheJob {
+  const { submitter: _submitter, ...rest } = job;
+  return rest;
+}

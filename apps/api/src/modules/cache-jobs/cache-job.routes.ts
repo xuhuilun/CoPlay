@@ -2,6 +2,7 @@ import type { FastifyInstance, FastifyRequest } from "fastify";
 import { z } from "zod";
 import { parseRouteId } from "../../shared/rest-params.js";
 import { isSupportedBilibiliUrl } from "./bilibili.js";
+import { toPublicCacheJob } from "./cache-job.model.js";
 import { CacheJobQuotaExceededError, type CacheJobStore } from "./cache-job.store.js";
 
 const createCacheJobSchema = z.object({
@@ -27,7 +28,8 @@ export async function registerCacheJobRoutes(
     }
     const submitter = await resolveSubmitter(request);
     try {
-      return reply.code(201).send(await jobs.create(parsed.data.sourceUrl, submitter));
+      const job = await jobs.create(parsed.data.sourceUrl, submitter);
+      return reply.code(201).send(toPublicCacheJob(job));
     } catch (error) {
       if (error instanceof CacheJobQuotaExceededError) {
         return reply
@@ -47,6 +49,6 @@ export async function registerCacheJobRoutes(
     if (!job) {
       return reply.notFound("Cache job not found");
     }
-    return job;
+    return toPublicCacheJob(job);
   });
 }

@@ -2,7 +2,7 @@ import sensible from "@fastify/sensible";
 import assert from "node:assert/strict";
 import test from "node:test";
 import Fastify from "fastify";
-import type { CacheJob } from "./cache-job.model.js";
+import { toPublicCacheJob, type CacheJob } from "./cache-job.model.js";
 import { registerCacheJobRoutes } from "./cache-job.routes.js";
 import { CacheJobQuotaExceededError, type CacheJobStore } from "./cache-job.store.js";
 
@@ -20,6 +20,8 @@ test("POST /api/cache-jobs creates a cache job", async () => {
   assert.equal(job.sourceUrl, "https://www.bilibili.com/video/BV1xx411c7mD");
   assert.equal(job.status, "queued");
   assert.equal(job.progress, 5);
+  // The public response must not leak the submitter identity (which includes client IPs).
+  assert.equal(job.submitter, undefined);
 
   await app.close();
 });
@@ -133,7 +135,7 @@ test("GET /api/cache-jobs/:id returns an existing cache job", async () => {
   });
 
   assert.equal(response.statusCode, 200);
-  assert.deepEqual(response.json(), created);
+  assert.deepEqual(response.json(), toPublicCacheJob(created));
 
   await app.close();
 });
@@ -147,7 +149,7 @@ test("GET /api/cache-jobs/:id normalizes route ids", async () => {
     url: `/api/cache-jobs/${encodeURIComponent(` ${created.id} `)}`
   });
   assert.equal(padded.statusCode, 200);
-  assert.deepEqual(padded.json(), created);
+  assert.deepEqual(padded.json(), toPublicCacheJob(created));
 
   const blank = await app.inject({
     method: "GET",

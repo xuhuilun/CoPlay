@@ -1,5 +1,6 @@
 import type { Server } from "socket.io";
 import { z } from "zod";
+import { toPublicCacheJob } from "./cache-job.model.js";
 import type { CacheJobNotifier } from "./cache-job.notifier.js";
 
 type SubscribePayload = {
@@ -22,7 +23,8 @@ export function registerCacheJobGateway(io: Server, notifier: CacheJobNotifier):
   });
 
   return notifier.onUpdate((job) => {
-    io.to(cacheJobRoom(job.id)).emit("cache-job:update", job);
+    // Subscribers are anonymous, so never broadcast the submitter identity (which includes IPs).
+    io.to(cacheJobRoom(job.id)).emit("cache-job:update", toPublicCacheJob(job));
   });
 }
 
