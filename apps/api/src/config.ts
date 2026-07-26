@@ -12,12 +12,22 @@ export type AppConfig = {
   databaseUrl?: string;
   redisUrl?: string;
   githubOAuth?: GithubOAuthConfig;
+  ossUpload?: OssUploadConfig;
 };
 
 export type GithubOAuthConfig = {
   clientId: string;
   redirectUri: string;
   clientSecret?: string;
+};
+
+export type OssUploadConfig = {
+  accessKeyId: string;
+  accessKeySecret: string;
+  bucket: string;
+  region: string;
+  internal: boolean;
+  endpoint?: string;
 };
 
 export function loadConfig(): AppConfig {
@@ -36,8 +46,35 @@ export function loadConfig(): AppConfig {
     rateLimitWindow: parseStringSetting(process.env.RATE_LIMIT_WINDOW, "1 minute"),
     databaseUrl: parseOptionalUrlSetting(process.env.DATABASE_URL),
     redisUrl: parseOptionalUrlSetting(process.env.REDIS_URL),
-    githubOAuth: parseGithubOAuth()
+    githubOAuth: parseGithubOAuth(),
+    ossUpload: parseOssUpload()
   };
+}
+
+function parseOssUpload(): OssUploadConfig | undefined {
+  const accessKeyId = process.env.OSS_ACCESS_KEY_ID?.trim();
+  const accessKeySecret = process.env.OSS_ACCESS_KEY_SECRET?.trim();
+  const bucket = process.env.OSS_BUCKET?.trim();
+  const region = process.env.OSS_REGION?.trim();
+  if (!accessKeyId || !accessKeySecret || !bucket || !region) {
+    return undefined;
+  }
+  return {
+    accessKeyId,
+    accessKeySecret,
+    bucket,
+    region,
+    internal: parseBooleanSetting(process.env.OSS_INTERNAL, false),
+    endpoint: process.env.OSS_ENDPOINT?.trim() || undefined
+  };
+}
+
+function parseBooleanSetting(value: string | undefined, fallback: boolean): boolean {
+  const normalized = value?.trim().toLowerCase();
+  if (normalized === undefined || normalized === "") {
+    return fallback;
+  }
+  return normalized === "true" || normalized === "1" || normalized === "yes";
 }
 
 function parseGithubOAuth(): GithubOAuthConfig | undefined {

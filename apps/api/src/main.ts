@@ -22,8 +22,10 @@ import { CacheJobNotifier } from "./modules/cache-jobs/cache-job.notifier.js";
 import { CacheJobRepository } from "./modules/cache-jobs/cache-job.repository.js";
 import { registerCacheJobRoutes } from "./modules/cache-jobs/cache-job.routes.js";
 import type { CacheJobStore } from "./modules/cache-jobs/cache-job.store.js";
-import type { BilibiliDownloader } from "./modules/cache-jobs/cache-pipeline.js";
+import { AliOssClient } from "./modules/cache-jobs/ali-oss.client.js";
+import type { BilibiliDownloader, CdnUploader } from "./modules/cache-jobs/cache-pipeline.js";
 import { SpawnCommandRunner } from "./modules/cache-jobs/command-runner.js";
+import { OssCdnUploader } from "./modules/cache-jobs/oss-cdn.uploader.js";
 import { YtDlpBilibiliDownloader } from "./modules/cache-jobs/ytdlp.downloader.js";
 import { registerHealthRoutes } from "./modules/health/health.routes.js";
 import { PrismaCacheJobRepository } from "./modules/cache-jobs/prisma-cache-job.repository.js";
@@ -77,7 +79,26 @@ const cacheDownloader: BilibiliDownloader | undefined =
   config.cacheDownloader === "ytdlp"
     ? new YtDlpBilibiliDownloader(new SpawnCommandRunner(), { binaryPath: config.ytdlpBinary })
     : undefined;
-const cachePipeline = cacheDownloader ? { downloader: cacheDownloader } : undefined;
+const cacheUploader: CdnUploader | undefined = config.ossUpload
+  ? new OssCdnUploader(
+      new AliOssClient({
+        accessKeyId: config.ossUpload.accessKeyId,
+        accessKeySecret: config.ossUpload.accessKeySecret,
+        bucket: config.ossUpload.bucket,
+        region: config.ossUpload.region,
+        internal: config.ossUpload.internal,
+        endpoint: config.ossUpload.endpoint
+      }),
+      {
+        bucket: config.ossUpload.bucket,
+        region: config.ossUpload.region,
+        internal: config.ossUpload.internal,
+        cdnBaseUrl: config.cdnBaseUrl
+      }
+    )
+  : undefined;
+const cachePipeline =
+  cacheDownloader || cacheUploader ? { downloader: cacheDownloader, uploader: cacheUploader } : undefined;
 
 if (config.persistenceDriver === "prisma") {
   prisma = new PrismaClient();

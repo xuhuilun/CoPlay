@@ -11,6 +11,8 @@ export type DownloadedVideo = {
   artifactId: string;
   durationSeconds: number;
   posterUrl: string;
+  /** Local path of the downloaded artifact, when a real downloader produced a file. */
+  filePath?: string;
 };
 
 /**

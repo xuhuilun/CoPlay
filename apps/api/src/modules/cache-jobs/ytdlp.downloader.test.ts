@@ -14,6 +14,10 @@ test("buildProbeArgs and buildDownloadArgs construct the expected yt-dlp args", 
     "%(id)s.%(ext)s",
     url
   ]);
+  assert.deepEqual(
+    buildDownloadArgs(url, { outputTemplate: "out/%(id)s.%(ext)s", format: "best", remuxFormat: "mp4" }),
+    ["--no-playlist", "-f", "best", "-o", "out/%(id)s.%(ext)s", "--remux-video", "mp4", url]
+  );
 });
 
 test("parseProbe reads the yt-dlp json payload", () => {
@@ -27,17 +31,19 @@ test("download probes then downloads and maps metadata", async () => {
     { stdout: JSON.stringify({ id: "BV1xx411c7mD", title: "Demo", duration: 128.4, thumbnail: "https://t/1.jpg" }), stderr: "", code: 0 },
     { stdout: "", stderr: "", code: 0 }
   ]);
-  const downloader = new YtDlpBilibiliDownloader(runner, { binaryPath: "yt-dlp" });
+  const downloader = new YtDlpBilibiliDownloader(runner, { binaryPath: "yt-dlp", outputDir: "downloads" });
 
   const result = await downloader.download("https://www.bilibili.com/video/BV1xx411c7mD");
 
   assert.equal(runner.calls.length, 2);
   assert.deepEqual(runner.calls[0].args, ["--dump-single-json", "--no-playlist", "https://www.bilibili.com/video/BV1xx411c7mD"]);
   assert.equal(runner.calls[1].args[0], "--no-playlist");
+  assert.ok(runner.calls[1].args.includes("--remux-video"));
   assert.equal(result.artifactId, "BV1xx411c7mD");
   assert.equal(result.durationSeconds, 128); // rounded
   assert.equal(result.posterUrl, "https://t/1.jpg");
   assert.equal(result.ref?.kind, "bv");
+  assert.match(result.filePath ?? "", /downloads[\\/]BV1xx411c7mD\.mp4$/);
 });
 
 test("download falls back to a default duration and poster when the probe omits them", async () => {
