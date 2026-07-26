@@ -16,6 +16,15 @@ export class PrismaCacheJobRepository implements CacheJobStore {
   ) {}
 
   async create(sourceUrl: string): Promise<CacheJob> {
+    // Reuse an in-flight or completed job for the same source to avoid duplicate
+    // downloads and library entries; failed jobs are left out so retries can proceed.
+    const reusable = await this.prisma.cacheJob.findFirst({
+      where: { sourceUrl, status: { not: "failed" } },
+      orderBy: { createdAt: "desc" }
+    });
+    if (reusable) {
+      return toCacheJob(reusable);
+    }
     const job = await this.prisma.cacheJob.create({
       data: {
         sourceUrl,
@@ -44,9 +53,10 @@ export class PrismaCacheJobRepository implements CacheJobStore {
     ];
 
     steps.forEach((step, index) => {
-      setTimeout(() => {
+      const timer = setTimeout(() => {
         void this.advance(id, step);
       }, (index + 1) * 1300);
+      timer.unref?.();
     });
   }
 

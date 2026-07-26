@@ -17,6 +17,10 @@ export class CacheJobRepository implements CacheJobStore {
   ) {}
 
   create(sourceUrl: string): CacheJob {
+    const reusable = this.findReusableJob(sourceUrl);
+    if (reusable) {
+      return reusable;
+    }
     const now = new Date().toISOString();
     const job: CacheJob = {
       id: createId("job"),
@@ -37,6 +41,18 @@ export class CacheJobRepository implements CacheJobStore {
     return this.jobs.get(id);
   }
 
+  // Reuse an existing in-flight or completed job for the same source so resubmitting a
+  // link never triggers a duplicate download or a duplicate library entry. Failed jobs
+  // are not reused, allowing a genuine retry.
+  private findReusableJob(sourceUrl: string): CacheJob | undefined {
+    for (const job of this.jobs.values()) {
+      if (job.sourceUrl === sourceUrl && job.status !== "failed") {
+        return job;
+      }
+    }
+    return undefined;
+  }
+
   private simulate(id: string) {
     const steps: Array<Pick<CacheJob, "status" | "progress" | "message">> = [
       { status: "downloading", progress: 28, message: "正在从 B 站拉取视频元数据。" },
@@ -46,7 +62,7 @@ export class CacheJobRepository implements CacheJobStore {
     ];
 
     steps.forEach((step, index) => {
-      setTimeout(async () => {
+      const timer = setTimeout(async () => {
         const job = this.jobs.get(id);
         if (!job || job.status === "completed") {
           return;
@@ -71,6 +87,7 @@ export class CacheJobRepository implements CacheJobStore {
         this.jobs.set(id, next);
         this.notifier?.publish(next);
       }, (index + 1) * 1300);
+      timer.unref?.();
     });
   }
 }

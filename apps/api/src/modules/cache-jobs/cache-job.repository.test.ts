@@ -1,0 +1,55 @@
+import assert from "node:assert/strict";
+import test from "node:test";
+import type { Video } from "../videos/video.model.js";
+import type { CacheVideoInput, VideoStore } from "../videos/video.store.js";
+import { CacheJobRepository } from "./cache-job.repository.js";
+
+test("resubmitting the same source reuses the in-flight job", () => {
+  const jobs = new CacheJobRepository(new StubVideoStore());
+  const sourceUrl = "https://www.bilibili.com/video/BV1xx411c7mD";
+
+  const first = jobs.create(sourceUrl);
+  const second = jobs.create(sourceUrl);
+
+  assert.equal(second.id, first.id);
+});
+
+test("distinct sources create distinct jobs", () => {
+  const jobs = new CacheJobRepository(new StubVideoStore());
+
+  const first = jobs.create("https://www.bilibili.com/video/BV1xx411c7mD");
+  const second = jobs.create("https://www.bilibili.com/video/BV1yy411c7mE");
+
+  assert.notEqual(second.id, first.id);
+});
+
+class StubVideoStore implements VideoStore {
+  list(): Video[] {
+    return [];
+  }
+
+  hot(): Video[] {
+    return [];
+  }
+
+  findById(): Video | undefined {
+    return undefined;
+  }
+
+  addFromCache(input: CacheVideoInput): Video {
+    return {
+      id: "vid_stub",
+      title: input.title,
+      description: input.description,
+      source: "bilibili",
+      sourceUrl: input.sourceUrl ?? "https://www.bilibili.com",
+      cdnUrl: "https://cdn.example/video.mp4",
+      posterUrl: input.posterUrl,
+      durationSeconds: 30,
+      cachedAt: "2026-07-19T00:00:00.000Z",
+      tags: input.tags,
+      hotScore: input.hotScore ?? 70,
+      sources: [{ id: "auto", label: "原画", url: "https://cdn.example/video.mp4" }]
+    };
+  }
+}
