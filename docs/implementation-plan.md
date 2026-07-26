@@ -58,6 +58,7 @@ Progress:
 - Cache job source URLs are capped at 512 characters in API and web validation.
 - Room invites fall back to a manual copy field when browser clipboard access is unavailable.
 - Screening room host video switches invite other members to follow or stay, preserving member autonomy, while couple rooms keep applying switches immediately for both partners.
+- The room player control bar reveals on pointer activity and auto-hides after an idle window during playback, staying visible while paused, matching the hidden-control-bar requirement.
 
 ## Phase 3: Production Integrations
 

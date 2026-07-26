@@ -508,10 +508,18 @@ main {
   gap: 9px;
 }
 
-.theater:hover .player-controls,
+.theater.controls-visible .player-controls,
 .player-controls:focus-within {
   opacity: 1;
   transform: translateY(0);
+}
+
+.theater.controls-hidden {
+  cursor: none;
+}
+
+.theater.controls-hidden .player-controls:focus-within {
+  cursor: auto;
 }
 
 .player-controls button,

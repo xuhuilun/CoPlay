@@ -42,6 +42,8 @@ export function RoomPage() {
   const [duration, setDuration] = useState(0);
   const [volume, setVolume] = useState(1);
   const [switchInvite, setSwitchInvite] = useState<{ playerState: PlayerState; videoTitle: string } | null>(null);
+  const [controlsVisible, setControlsVisible] = useState(true);
+  const hideControlsTimerRef = useRef<number | null>(null);
 
   useEffect(() => {
     if (!roomId) {
@@ -263,6 +265,45 @@ export function RoomPage() {
     applyPlayerState(pending);
   }
 
+  function clearHideControlsTimer() {
+    if (hideControlsTimerRef.current !== null) {
+      window.clearTimeout(hideControlsTimerRef.current);
+      hideControlsTimerRef.current = null;
+    }
+  }
+
+  // Reveal the control bar on pointer activity and schedule it to hide again after a
+  // short idle window, but only while playback is active. When paused the bar stays put.
+  function revealControls() {
+    setControlsVisible(true);
+    clearHideControlsTimer();
+    if (isPaused) {
+      return;
+    }
+    hideControlsTimerRef.current = window.setTimeout(() => {
+      setControlsVisible(false);
+    }, 2600);
+  }
+
+  function hideControlsNow() {
+    if (isPaused) {
+      return;
+    }
+    clearHideControlsTimer();
+    setControlsVisible(false);
+  }
+
+  // Paused playback always keeps the controls in view; drop any pending hide timer.
+  useEffect(() => {
+    if (isPaused) {
+      clearHideControlsTimer();
+      setControlsVisible(true);
+    }
+  }, [isPaused]);
+
+  // Release the idle timer when the room page unmounts.
+  useEffect(() => clearHideControlsTimer, []);
+
   function togglePlayback() {
     const player = videoRef.current;
     if (!player) {
@@ -313,7 +354,11 @@ export function RoomPage() {
 
   return (
     <section className="room-page">
-      <div className="theater">
+      <div
+        className={controlsVisible ? "theater controls-visible" : "theater controls-hidden"}
+        onMouseMove={revealControls}
+        onMouseLeave={hideControlsNow}
+      >
         <video
           ref={videoRef}
           poster={video.posterUrl}
