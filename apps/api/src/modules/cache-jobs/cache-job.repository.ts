@@ -7,18 +7,27 @@ import type { CacheJobNotifier } from "./cache-job.notifier.js";
 import type { CacheJobStore } from "./cache-job.store.js";
 import { SimulatedBilibiliDownloader, SimulatedCdnUploader } from "./simulated-cache-pipeline.js";
 
+export type CacheJobPipelineOptions = {
+  downloader?: BilibiliDownloader;
+  uploader?: CdnUploader;
+  /** Delay between simulated progress steps; kept injectable so tests run fast. */
+  stepDelayMs?: number;
+};
+
 export class CacheJobRepository implements CacheJobStore {
   private readonly jobs = new Map<string, CacheJob>();
   private readonly downloader: BilibiliDownloader;
   private readonly uploader: CdnUploader;
+  private readonly stepDelayMs: number;
 
   constructor(
     private readonly videos: VideoStore,
     private readonly notifier?: CacheJobNotifier,
-    pipeline?: { downloader?: BilibiliDownloader; uploader?: CdnUploader }
+    options?: CacheJobPipelineOptions
   ) {
-    this.downloader = pipeline?.downloader ?? new SimulatedBilibiliDownloader();
-    this.uploader = pipeline?.uploader ?? new SimulatedCdnUploader();
+    this.downloader = options?.downloader ?? new SimulatedBilibiliDownloader();
+    this.uploader = options?.uploader ?? new SimulatedCdnUploader();
+    this.stepDelayMs = options?.stepDelayMs ?? 1300;
   }
 
   create(sourceUrl: string): CacheJob {
@@ -78,25 +87,41 @@ export class CacheJobRepository implements CacheJobStore {
           updatedAt: new Date().toISOString()
         };
         if (step.status === "completed") {
-          const downloaded = await this.downloader.download(job.sourceUrl);
-          const uploaded = await this.uploader.upload(downloaded);
-          const meta = describeCachedVideo(job.sourceUrl, id);
-          const video = await this.videos.addFromCache({
-            title: meta.title,
-            description: meta.description,
-            posterUrl: uploaded.posterUrl,
-            tags: ["bilibili", "cached"],
-            sourceUrl: job.sourceUrl,
-            hotScore: 78,
-            durationSeconds: downloaded.durationSeconds,
-            sources: uploaded.sources
-          });
-          next.videoId = video.id;
+          try {
+            const downloaded = await this.downloader.download(job.sourceUrl);
+            const uploaded = await this.uploader.upload(downloaded);
+            const meta = describeCachedVideo(job.sourceUrl, id);
+            const video = await this.videos.addFromCache({
+              title: meta.title,
+              description: meta.description,
+              posterUrl: uploaded.posterUrl,
+              tags: ["bilibili", "cached"],
+              sourceUrl: job.sourceUrl,
+              hotScore: 78,
+              durationSeconds: downloaded.durationSeconds,
+              sources: uploaded.sources
+            });
+            next.videoId = video.id;
+          } catch (error) {
+            const failed: CacheJob = {
+              ...job,
+              status: "failed",
+              message: `缓存失败：${errorMessage(error)}`,
+              updatedAt: new Date().toISOString()
+            };
+            this.jobs.set(id, failed);
+            this.notifier?.publish(failed);
+            return;
+          }
         }
         this.jobs.set(id, next);
         this.notifier?.publish(next);
-      }, (index + 1) * 1300);
+      }, (index + 1) * this.stepDelayMs);
       timer.unref?.();
     });
   }
+}
+
+function errorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : "未知错误";
 }

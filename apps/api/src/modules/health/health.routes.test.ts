@@ -115,6 +115,7 @@ function baseConfig(overrides: Partial<AppConfig> = {}): AppConfig {
     cdnBaseUrl: "https://cdn.bilisync.top",
     persistenceDriver: "memory",
     socketAdapter: "memory",
+    cacheDownloader: "simulated",
     rateLimitMax: 300,
     rateLimitWindow: "1 minute",
     ...overrides

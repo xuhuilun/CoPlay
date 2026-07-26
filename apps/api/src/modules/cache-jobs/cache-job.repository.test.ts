@@ -2,7 +2,9 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import type { Video } from "../videos/video.model.js";
 import type { CacheVideoInput, VideoStore } from "../videos/video.store.js";
+import type { CacheJob } from "./cache-job.model.js";
 import { CacheJobRepository } from "./cache-job.repository.js";
+import type { BilibiliDownloader } from "./cache-pipeline.js";
 
 test("resubmitting the same source reuses the in-flight job", () => {
   const jobs = new CacheJobRepository(new StubVideoStore());
@@ -22,6 +24,35 @@ test("distinct sources create distinct jobs", () => {
 
   assert.notEqual(second.id, first.id);
 });
+
+test("a failing download marks the job as failed", async () => {
+  const failingDownloader: BilibiliDownloader = {
+    download: async () => {
+      throw new Error("boom");
+    }
+  };
+  const jobs = new CacheJobRepository(new StubVideoStore(), undefined, {
+    downloader: failingDownloader,
+    stepDelayMs: 1
+  });
+
+  const job = jobs.create("https://www.bilibili.com/video/BV1xx411c7mD");
+  const terminal = await waitForTerminal(jobs, job.id);
+
+  assert.equal(terminal.status, "failed");
+  assert.match(terminal.message, /boom/);
+});
+
+async function waitForTerminal(jobs: CacheJobRepository, id: string): Promise<CacheJob> {
+  for (let attempt = 0; attempt < 200; attempt += 1) {
+    const job = jobs.findById(id);
+    if (job && (job.status === "completed" || job.status === "failed")) {
+      return job;
+    }
+    await new Promise((resolve) => setTimeout(resolve, 5));
+  }
+  throw new Error("cache job did not reach a terminal state");
+}
 
 class StubVideoStore implements VideoStore {
   list(): Video[] {

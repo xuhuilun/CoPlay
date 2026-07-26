@@ -22,6 +22,9 @@ import { CacheJobNotifier } from "./modules/cache-jobs/cache-job.notifier.js";
 import { CacheJobRepository } from "./modules/cache-jobs/cache-job.repository.js";
 import { registerCacheJobRoutes } from "./modules/cache-jobs/cache-job.routes.js";
 import type { CacheJobStore } from "./modules/cache-jobs/cache-job.store.js";
+import type { BilibiliDownloader } from "./modules/cache-jobs/cache-pipeline.js";
+import { SpawnCommandRunner } from "./modules/cache-jobs/command-runner.js";
+import { YtDlpBilibiliDownloader } from "./modules/cache-jobs/ytdlp.downloader.js";
 import { registerHealthRoutes } from "./modules/health/health.routes.js";
 import { PrismaCacheJobRepository } from "./modules/cache-jobs/prisma-cache-job.repository.js";
 import { MemoryPresenceStore } from "./modules/realtime/memory-presence.store.js";
@@ -70,14 +73,20 @@ let presence: PresenceStore;
 let redisPresenceClient: { ping(): Promise<string> } | undefined;
 const cacheJobNotifier = new CacheJobNotifier();
 
+const cacheDownloader: BilibiliDownloader | undefined =
+  config.cacheDownloader === "ytdlp"
+    ? new YtDlpBilibiliDownloader(new SpawnCommandRunner(), { binaryPath: config.ytdlpBinary })
+    : undefined;
+const cachePipeline = cacheDownloader ? { downloader: cacheDownloader } : undefined;
+
 if (config.persistenceDriver === "prisma") {
   prisma = new PrismaClient();
   videos = new PrismaVideoRepository(prisma);
-  cacheJobs = new PrismaCacheJobRepository(prisma, videos, cacheJobNotifier);
+  cacheJobs = new PrismaCacheJobRepository(prisma, videos, cacheJobNotifier, cachePipeline);
   rooms = new PrismaRoomRepository(prisma);
 } else {
   videos = new VideoRepository();
-  cacheJobs = new CacheJobRepository(videos, cacheJobNotifier);
+  cacheJobs = new CacheJobRepository(videos, cacheJobNotifier, cachePipeline);
   rooms = new RoomRepository();
 }
 

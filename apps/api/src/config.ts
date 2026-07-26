@@ -5,6 +5,8 @@ export type AppConfig = {
   cdnBaseUrl: string;
   persistenceDriver: "memory" | "prisma";
   socketAdapter: "memory" | "redis";
+  cacheDownloader: "simulated" | "ytdlp";
+  ytdlpBinary?: string;
   rateLimitMax: number;
   rateLimitWindow: string;
   databaseUrl?: string;
@@ -28,6 +30,8 @@ export function loadConfig(): AppConfig {
     cdnBaseUrl: parseUrlSetting(process.env.CDN_BASE_URL, "https://cdn.bilisync.top"),
     persistenceDriver: parseEnumSetting(process.env.PERSISTENCE_DRIVER, ["memory", "prisma"], "memory"),
     socketAdapter: parseEnumSetting(process.env.SOCKET_ADAPTER, ["memory", "redis"], "memory"),
+    cacheDownloader: parseEnumSetting(process.env.CACHE_DOWNLOADER, ["simulated", "ytdlp"], "simulated"),
+    ytdlpBinary: process.env.YTDLP_BINARY?.trim() || undefined,
     rateLimitMax: parsePositiveInteger(process.env.RATE_LIMIT_MAX, 300),
     rateLimitWindow: parseStringSetting(process.env.RATE_LIMIT_WINDOW, "1 minute"),
     databaseUrl: parseOptionalUrlSetting(process.env.DATABASE_URL),

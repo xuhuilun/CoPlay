@@ -74,20 +74,29 @@ export class PrismaCacheJobRepository implements CacheJobStore {
 
     let videoId = job.videoId;
     if (step.status === "completed") {
-      const downloaded = await this.downloader.download(job.sourceUrl);
-      const uploaded = await this.uploader.upload(downloaded);
-      const meta = describeCachedVideo(job.sourceUrl, id);
-      const video = await this.videos.addFromCache({
-        title: meta.title,
-        description: meta.description,
-        posterUrl: uploaded.posterUrl,
-        tags: ["bilibili", "cached"],
-        sourceUrl: job.sourceUrl,
-        hotScore: 78,
-        durationSeconds: downloaded.durationSeconds,
-        sources: uploaded.sources
-      });
-      videoId = video.id;
+      try {
+        const downloaded = await this.downloader.download(job.sourceUrl);
+        const uploaded = await this.uploader.upload(downloaded);
+        const meta = describeCachedVideo(job.sourceUrl, id);
+        const video = await this.videos.addFromCache({
+          title: meta.title,
+          description: meta.description,
+          posterUrl: uploaded.posterUrl,
+          tags: ["bilibili", "cached"],
+          sourceUrl: job.sourceUrl,
+          hotScore: 78,
+          durationSeconds: downloaded.durationSeconds,
+          sources: uploaded.sources
+        });
+        videoId = video.id;
+      } catch (error) {
+        const failed = await this.prisma.cacheJob.update({
+          where: { id },
+          data: { status: "failed", message: `缓存失败：${errorMessage(error)}` }
+        });
+        this.notifier?.publish(toCacheJob(failed));
+        return;
+      }
     }
 
     const updated = await this.prisma.cacheJob.update({
@@ -101,6 +110,10 @@ export class PrismaCacheJobRepository implements CacheJobStore {
     });
     this.notifier?.publish(toCacheJob(updated));
   }
+}
+
+function errorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : "未知错误";
 }
 
 function toCacheJob(job: PrismaCacheJob): CacheJob {
