@@ -5,7 +5,6 @@ import Fastify from "fastify";
 import { AuthProviderRegistry } from "./auth.registry.js";
 import { registerAuthRoutes } from "./auth.routes.js";
 import { GithubAuthProvider } from "./github.provider.js";
-import { QrAuthProvider } from "./qr.provider.js";
 
 test("GET /api/auth/providers lists provider availability", async () => {
   const { app } = await createAuthRoutesTestApp();
@@ -16,11 +15,7 @@ test("GET /api/auth/providers lists provider availability", async () => {
   const items = response.json().items as Array<{ id: string; available: boolean }>;
   assert.deepEqual(
     items.map((item) => [item.id, item.available]),
-    [
-      ["github", true],
-      ["wechat", false],
-      ["qq", false]
-    ]
+    [["github", true]]
   );
 
   await app.close();
@@ -38,11 +33,14 @@ test("POST /api/auth/providers/:id/start returns an authorize url for a configur
   await app.close();
 });
 
-test("POST /api/auth/providers/:id/start reports unconfigured providers as conflict", async () => {
-  const { app } = await createAuthRoutesTestApp();
+test("POST /api/auth/providers/:id/start reports an unconfigured provider as conflict", async () => {
+  const app = Fastify();
+  // A GitHub provider without config is available:false and rejects start with 409.
+  const registry = new AuthProviderRegistry([new GithubAuthProvider()]);
+  await app.register(sensible);
+  await registerAuthRoutes(app, registry);
 
-  const response = await app.inject({ method: "POST", url: "/api/auth/providers/wechat/start" });
-
+  const response = await app.inject({ method: "POST", url: "/api/auth/providers/github/start" });
   assert.equal(response.statusCode, 409);
 
   await app.close();
@@ -64,9 +62,7 @@ async function createAuthRoutesTestApp() {
     new GithubAuthProvider(
       { clientId: "client_123", redirectUri: "https://bilisync.top/auth/github/callback" },
       { generateState: () => "state_fixed" }
-    ),
-    new QrAuthProvider("wechat", "微信"),
-    new QrAuthProvider("qq", "QQ")
+    )
   ]);
   await app.register(sensible);
   await registerAuthRoutes(app, registry);

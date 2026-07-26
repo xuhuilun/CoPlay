@@ -13,7 +13,6 @@ import { registerAuthRoutes } from "./modules/auth/auth.routes.js";
 import { registerGithubCallbackRoutes } from "./modules/auth/github.callback.js";
 import { HttpGithubOAuthClient } from "./modules/auth/github.oauth-client.js";
 import { GithubAuthProvider } from "./modules/auth/github.provider.js";
-import { QrAuthProvider } from "./modules/auth/qr.provider.js";
 import { registerAdminRoutes } from "./modules/admin/admin.routes.js";
 import { readCookie } from "./modules/auth/cookie.js";
 import { registerSessionRoutes } from "./modules/auth/session.routes.js";
@@ -146,10 +145,11 @@ const authStateStore = new MemoryAuthStateStore();
 const users = new MemoryUserStore();
 const sessions = new MemorySessionStore();
 
+// Login is GitHub-only. WeChat/QQ QR sign-in was cut: 微信 网站应用 requires a company
+// entity, which an individual developer cannot obtain. The AuthProvider seam remains, so a
+// future QR provider can be added without touching the rest of the app.
 const authRegistry = new AuthProviderRegistry([
-  new GithubAuthProvider(config.githubOAuth, { stateStore: authStateStore }),
-  new QrAuthProvider("wechat", "微信"),
-  new QrAuthProvider("qq", "QQ")
+  new GithubAuthProvider(config.githubOAuth, { stateStore: authStateStore })
 ]);
 
 // Quota accounting keys by the authenticated user when a session exists, else the client IP.

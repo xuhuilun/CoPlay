@@ -69,7 +69,7 @@ Progress:
 
 1. Per-submitter cache-job quota to guard OSS storage and CDN egress from abuse.
 2. Admin backend: task list (filter/retry/cancel), user list (ban), storage & usage view.
-3. Freeze WeChat/QQ QR login (seam retained) pending business-entity qualification.
+3. WeChat/QQ QR login cut — 微信 网站应用 requires a company entity an individual developer cannot obtain; the `AuthProvider` seam remains for a future QR provider.
 
 Progress:
 
