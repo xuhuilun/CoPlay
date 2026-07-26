@@ -129,7 +129,46 @@ export const api = {
   authProviders: () => request<{ items: AuthProviderInfo[] }>("/auth/providers"),
   startAuth: (id: string) => request<AuthStart>(`/auth/providers/${id}/start`, { method: "POST" }),
   me: () => request<{ user: SessionUser | null }>("/auth/me"),
-  logout: () => request<{ ok: boolean }>("/auth/logout", { method: "POST" })
+  logout: () => request<{ ok: boolean }>("/auth/logout", { method: "POST" }),
+  admin: {
+    me: () => request<{ ok: boolean }>("/admin/me"),
+    cacheJobs: (status?: string) =>
+      request<{ items: AdminCacheJob[] }>(`/admin/cache-jobs${status ? `?status=${status}` : ""}`),
+    retryJob: (id: string) => request<AdminCacheJob>(`/admin/cache-jobs/${id}/retry`, { method: "POST" }),
+    cancelJob: (id: string) => request<AdminCacheJob>(`/admin/cache-jobs/${id}/cancel`, { method: "POST" }),
+    users: () => request<{ items: AdminUser[] }>("/admin/users"),
+    ban: (id: string, banned: boolean) =>
+      request<AdminUser>(`/admin/users/${id}/ban`, { method: "POST", body: JSON.stringify({ banned }) }),
+    usage: () => request<AdminUsage>("/admin/usage")
+  }
+};
+
+export type AdminCacheJob = {
+  id: string;
+  sourceUrl: string;
+  status: CacheJob["status"];
+  progress: number;
+  message: string;
+  videoId?: string;
+  submitter: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type AdminUser = {
+  id: string;
+  provider: string;
+  providerUserId: string;
+  displayName: string;
+  avatarUrl: string;
+  banned: boolean;
+  createdAt: string;
+};
+
+export type AdminUsage = {
+  jobs: { total: number; byStatus: Record<string, number> };
+  librarySize: number;
+  topSubmitters: { submitter: string; total: number; completed: number; failed: number }[];
 };
 
 export const socketUrl = import.meta.env.VITE_SOCKET_URL ?? "http://localhost:4000";

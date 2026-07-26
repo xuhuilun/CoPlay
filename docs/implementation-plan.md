@@ -78,6 +78,7 @@ Progress:
 - Admin user management: users carry a `banned` flag with `GET /api/admin/users` and `POST /api/admin/users/:id/ban`. A ban revokes the user's authenticated identity — `/auth/me` resolves to null, the admin guard treats them as unauthenticated (401, even a self-banned admin), and the GitHub callback refuses a session (403) — rather than a spoofable submit block; abuse itself is bounded by the IP-keyed quota. Auth users/sessions remain in-memory (no Prisma model yet), so bans do not survive a restart.
 - The `submitter` field (which includes client IPs) is stripped from all public cache-job surfaces — the create response, `GET /api/cache-jobs/:id`, and the WebSocket `cache-job:update` push all return a `PublicCacheJob` — while admin routes retain it. This prevents leaking a submitter's IP to anyone holding a job id.
 - Admin usage view: `GET /api/admin/usage` aggregates job counts by status, the cached library size, and per-submitter task counts (top 20) via a pure `computeUsage`. Real OSS byte usage is deliberately excluded — it requires the Aliyun OSS BucketStat API — rather than estimated. Covered by usage-aggregation and route tests.
+- Admin web UI at `/admin`: a self-guarding page (renders a permission notice unless `GET /api/admin/me` succeeds) with a usage summary, a status-filterable task list with per-row retry/cancel, a user list with a ban/unban toggle, and a top-submitters usage table. A "管理" nav link appears only for admins.
 
 ## Phase 3: Production Integrations
 

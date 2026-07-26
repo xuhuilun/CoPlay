@@ -1,4 +1,4 @@
-import { Clapperboard, Library, LogIn, LogOut, Radar } from "lucide-react";
+import { Clapperboard, Library, LogIn, LogOut, Radar, ShieldCheck } from "lucide-react";
 import { useEffect, useState } from "react";
 import { NavLink, Outlet } from "react-router-dom";
 import { api, type AuthProviderInfo, type SessionUser } from "../api/client.js";
@@ -22,6 +22,7 @@ export function AppShell() {
             <Library size={17} />
             视频库
           </NavLink>
+          <AdminLink />
           <LoginMenu />
         </nav>
       </header>
@@ -29,6 +30,36 @@ export function AppShell() {
         <Outlet />
       </main>
     </div>
+  );
+}
+
+function AdminLink() {
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  useEffect(() => {
+    let ignore = false;
+    // Only admins get 200 here; everyone else 401/403 and the link stays hidden.
+    api.admin
+      .me()
+      .then(() => {
+        if (!ignore) {
+          setIsAdmin(true);
+        }
+      })
+      .catch(() => undefined);
+    return () => {
+      ignore = true;
+    };
+  }, []);
+
+  if (!isAdmin) {
+    return null;
+  }
+  return (
+    <NavLink to="/admin">
+      <ShieldCheck size={17} />
+      管理
+    </NavLink>
   );
 }
 

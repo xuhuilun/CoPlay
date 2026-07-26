@@ -2,6 +2,7 @@ import React from "react";
 import ReactDOM from "react-dom/client";
 import { BrowserRouter, Route, Routes } from "react-router-dom";
 import { AppShell } from "./components/AppShell.js";
+import { AdminPage } from "./pages/AdminPage.js";
 import { HomePage } from "./pages/HomePage.js";
 import { RoomPage } from "./pages/RoomPage.js";
 import { NotFoundPage } from "./pages/NotFoundPage.js";
@@ -18,6 +19,7 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
           <Route path="/library" element={<VideoLibraryPage />} />
           <Route path="/videos/:videoId" element={<VideoDetailPage />} />
           <Route path="/rooms/:roomId" element={<RoomPage />} />
+          <Route path="/admin" element={<AdminPage />} />
           <Route path="*" element={<NotFoundPage />} />
         </Route>
       </Routes>
