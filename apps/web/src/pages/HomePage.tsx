@@ -189,10 +189,19 @@ export function HomePage() {
 }
 
 function isSupportedBilibiliUrl(value: string): boolean {
+  let url: URL;
   try {
-    const hostname = new URL(value).hostname.toLowerCase();
-    return hostname === "bilibili.com" || hostname.endsWith(".bilibili.com") || hostname === "b23.tv";
+    url = new URL(value.trim());
   } catch {
     return false;
   }
+  const hostname = url.hostname.toLowerCase();
+  if (hostname === "b23.tv") {
+    return url.pathname.split("/").some((part) => part.length > 0);
+  }
+  if (hostname === "bilibili.com" || hostname.endsWith(".bilibili.com")) {
+    const target = `${url.pathname}${url.search}`;
+    return /BV[0-9A-Za-z]{10}/.test(target) || /av\d+/i.test(target);
+  }
+  return false;
 }

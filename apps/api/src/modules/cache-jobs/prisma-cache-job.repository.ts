@@ -1,5 +1,6 @@
 import type { CacheJob as PrismaCacheJob, PrismaClient } from "@prisma/client";
 import type { VideoStore } from "../videos/video.store.js";
+import { describeCachedVideo } from "./bilibili.js";
 import type { CacheJob } from "./cache-job.model.js";
 import type { CacheJobNotifier } from "./cache-job.notifier.js";
 import type { CacheJobStore } from "./cache-job.store.js";
@@ -57,9 +58,10 @@ export class PrismaCacheJobRepository implements CacheJobStore {
 
     let videoId = job.videoId;
     if (step.status === "completed") {
+      const meta = describeCachedVideo(job.sourceUrl, id);
       const video = await this.videos.addFromCache({
-        title: `B站缓存视频 ${id.slice(-6)}`,
-        description: "由用户提交链接后缓存到 CDN 的视频。",
+        title: meta.title,
+        description: meta.description,
         posterUrl,
         tags: ["bilibili", "cached"],
         sourceUrl: job.sourceUrl,
