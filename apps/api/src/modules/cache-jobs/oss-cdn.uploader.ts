@@ -1,5 +1,6 @@
 import { extname } from "node:path";
 import type { CdnUploader, DownloadedVideo, UploadedRenditions } from "./cache-pipeline.js";
+import { FileSha256Digest } from "./content-digest.js";
 
 /** Result of a multipart put, exposing the stored object key. */
 export type OssPutResult = { name: string };
@@ -19,11 +20,18 @@ export interface OssClient {
 }
 
 /**
- * Optional CDN refresh/preheat step run after upload. A production implementation calls the
- * Aliyun CDN RefreshObjectCaches / PushObjectCache API; omitting it skips the step entirely.
+ * Optional CDN refresh/preheat step. Retained as a seam but intentionally not wired: because
+ * object keys are content-addressed (a URL always maps to identical bytes), the CDN can cache
+ * forever and never serves stale content, so a refresh is not needed by design. A production
+ * implementation would call the Aliyun CDN RefreshObjectCaches / PushObjectCache API.
  */
 export interface CdnRefresher {
   refresh(url: string): Promise<void>;
+}
+
+/** Computes a stable content digest for an artifact file, used to build immutable keys. */
+export interface ContentDigest {
+  compute(filePath: string): Promise<string>;
 }
 
 export type OssCdnUploaderOptions = {
@@ -34,6 +42,7 @@ export type OssCdnUploaderOptions = {
   cdnBaseUrl?: string;
   /** Multipart part size in bytes. Aliyun requires >= 100 KB; defaults to 1 MB. */
   partSize?: number;
+  digest?: ContentDigest;
   refresher?: CdnRefresher;
 };
 
@@ -52,21 +61,29 @@ const CONTENT_TYPES: Record<string, string> = {
 
 /**
  * Publishes a downloaded artifact to Aliyun OSS via multipart upload with the correct
- * Content-Type, returns a playable CDN rendition, and optionally triggers a CDN refresh.
- * Transcoding is out of scope, so a single "原画" rendition is returned.
+ * Content-Type and returns a playable CDN rendition. Object keys are content-addressed
+ * (`videos/<artifactId>/<contentDigest>.<ext>`) so every distinct upload lands at a unique,
+ * immutable URL — the CDN can cache it indefinitely and never serves stale content, which
+ * removes the need for a cache refresh by design. Transcoding is out of scope, so a single
+ * "原画" rendition is returned.
  */
 export class OssCdnUploader implements CdnUploader {
+  private readonly digest: ContentDigest;
+
   constructor(
     private readonly client: OssClient,
     private readonly options: OssCdnUploaderOptions
-  ) {}
+  ) {
+    this.digest = options.digest ?? new FileSha256Digest();
+  }
 
   async upload(video: DownloadedVideo): Promise<UploadedRenditions> {
     if (!video.filePath) {
       throw new Error("cannot upload to OSS without a local artifact file");
     }
     const ext = extname(video.filePath).toLowerCase() || ".mp4";
-    const objectKey = buildObjectKey(video.artifactId, ext);
+    const version = await this.digest.compute(video.filePath);
+    const objectKey = buildObjectKey(video.artifactId, version, ext);
     const partSize = Math.max(MIN_PART_SIZE, this.options.partSize ?? DEFAULT_PART_SIZE);
 
     const result = await this.client.putObjectMultipart(objectKey, video.filePath, {
@@ -75,6 +92,7 @@ export class OssCdnUploader implements CdnUploader {
     });
 
     const url = this.buildPlaybackUrl(result.name || objectKey);
+    // Retained seam; content-addressed keys make it unnecessary, so it is off unless injected.
     if (this.options.refresher) {
       await this.options.refresher.refresh(url);
     }
@@ -95,9 +113,10 @@ export class OssCdnUploader implements CdnUploader {
   }
 }
 
-export function buildObjectKey(artifactId: string, ext: string): string {
+export function buildObjectKey(artifactId: string, version: string, ext: string): string {
   const safeId = artifactId.replace(/[^A-Za-z0-9_-]/g, "_");
-  return `videos/${safeId}/original${ext}`;
+  const safeVersion = version.replace(/[^A-Za-z0-9_-]/g, "_");
+  return `videos/${safeId}/${safeVersion}${ext}`;
 }
 
 export function resolveContentType(ext: string): string {
