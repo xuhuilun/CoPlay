@@ -118,9 +118,19 @@ test("upload rejects when there is no local artifact", async () => {
   await assert.rejects(uploader.upload(downloaded({ filePath: undefined })), /without a local artifact/);
 });
 
-test("upload propagates OSS client failures", async () => {
+test("upload labels an OSS multipart failure to pinpoint the seam", async () => {
   const uploader = new OssCdnUploader(new FakeOssClient({ fail: true }), uploaderOptions());
-  await assert.rejects(uploader.upload(downloaded()), /oss upload failed/);
+  await assert.rejects(uploader.upload(downloaded()), /oss multipart upload failed: oss upload failed/);
+});
+
+test("upload labels a content digest failure to pinpoint the seam", async () => {
+  const digest: ContentDigest = {
+    compute: async () => {
+      throw new Error("ENOENT: no such file");
+    }
+  };
+  const uploader = new OssCdnUploader(new FakeOssClient(), uploaderOptions({ digest }));
+  await assert.rejects(uploader.upload(downloaded()), /content digest failed: ENOENT/);
 });
 
 test("upload still runs the optional CDN refresh seam when one is injected", async () => {

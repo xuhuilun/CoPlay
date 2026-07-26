@@ -78,18 +78,22 @@ export class OssCdnUploader implements CdnUploader {
   }
 
   async upload(video: DownloadedVideo): Promise<UploadedRenditions> {
-    if (!video.filePath) {
+    const filePath = video.filePath;
+    if (!filePath) {
       throw new Error("cannot upload to OSS without a local artifact file");
     }
-    const ext = extname(video.filePath).toLowerCase() || ".mp4";
-    const version = await this.digest.compute(video.filePath);
+    const ext = extname(filePath).toLowerCase() || ".mp4";
+    // Label each seam's failure so the worker log pinpoints hash vs upload.
+    const version = await labelSeam("content digest failed", () => this.digest.compute(filePath));
     const objectKey = buildObjectKey(video.artifactId, version, ext);
     const partSize = Math.max(MIN_PART_SIZE, this.options.partSize ?? DEFAULT_PART_SIZE);
 
-    const result = await this.client.putObjectMultipart(objectKey, video.filePath, {
-      mime: resolveContentType(ext),
-      partSize
-    });
+    const result = await labelSeam("oss multipart upload failed", () =>
+      this.client.putObjectMultipart(objectKey, filePath, {
+        mime: resolveContentType(ext),
+        partSize
+      })
+    );
 
     const url = this.buildPlaybackUrl(result.name || objectKey);
     // Retained seam; content-addressed keys make it unnecessary, so it is off unless injected.
@@ -110,6 +114,15 @@ export class OssCdnUploader implements CdnUploader {
     const suffix = this.options.internal ? "-internal" : "";
     const host = `${this.options.bucket}.oss-${this.options.region}${suffix}.aliyuncs.com`;
     return `https://${host}/${objectKey}`;
+  }
+}
+
+async function labelSeam<T>(label: string, run: () => Promise<T>): Promise<T> {
+  try {
+    return await run();
+  } catch (error) {
+    const detail = error instanceof Error ? error.message : String(error);
+    throw new Error(`${label}: ${detail}`);
   }
 }
 

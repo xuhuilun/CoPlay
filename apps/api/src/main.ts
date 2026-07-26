@@ -97,8 +97,7 @@ const cacheUploader: CdnUploader | undefined = config.ossUpload
       }
     )
   : undefined;
-const cachePipeline =
-  cacheDownloader || cacheUploader ? { downloader: cacheDownloader, uploader: cacheUploader } : undefined;
+const cachePipeline = { downloader: cacheDownloader, uploader: cacheUploader, logger: app.log };
 
 if (config.persistenceDriver === "prisma") {
   prisma = new PrismaClient();

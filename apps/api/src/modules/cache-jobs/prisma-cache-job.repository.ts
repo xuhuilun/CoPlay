@@ -1,7 +1,9 @@
 import type { CacheJob as PrismaCacheJob, PrismaClient } from "@prisma/client";
+import { noopLogger, type PipelineLogger } from "../../shared/logger.js";
 import type { VideoStore } from "../videos/video.store.js";
 import { describeCachedVideo } from "./bilibili.js";
 import type { BilibiliDownloader, CdnUploader } from "./cache-pipeline.js";
+import type { CacheJobPipelineOptions } from "./cache-job.repository.js";
 import type { CacheJob } from "./cache-job.model.js";
 import type { CacheJobNotifier } from "./cache-job.notifier.js";
 import type { CacheJobStore } from "./cache-job.store.js";
@@ -10,15 +12,17 @@ import { SimulatedBilibiliDownloader, SimulatedCdnUploader } from "./simulated-c
 export class PrismaCacheJobRepository implements CacheJobStore {
   private readonly downloader: BilibiliDownloader;
   private readonly uploader: CdnUploader;
+  private readonly logger: PipelineLogger;
 
   constructor(
     private readonly prisma: PrismaClient,
     private readonly videos: VideoStore,
     private readonly notifier?: CacheJobNotifier,
-    pipeline?: { downloader?: BilibiliDownloader; uploader?: CdnUploader }
+    options?: CacheJobPipelineOptions
   ) {
-    this.downloader = pipeline?.downloader ?? new SimulatedBilibiliDownloader();
-    this.uploader = pipeline?.uploader ?? new SimulatedCdnUploader();
+    this.downloader = options?.downloader ?? new SimulatedBilibiliDownloader();
+    this.uploader = options?.uploader ?? new SimulatedCdnUploader();
+    this.logger = options?.logger ?? noopLogger;
   }
 
   async create(sourceUrl: string): Promise<CacheJob> {
@@ -75,7 +79,12 @@ export class PrismaCacheJobRepository implements CacheJobStore {
     let videoId = job.videoId;
     if (step.status === "completed") {
       try {
+        this.logger.info({ jobId: id, sourceUrl: job.sourceUrl, stage: "download" }, "cache pipeline: download");
         const downloaded = await this.downloader.download(job.sourceUrl);
+        this.logger.info(
+          { jobId: id, artifactId: downloaded.artifactId, stage: "upload" },
+          "cache pipeline: upload"
+        );
         const uploaded = await this.uploader.upload(downloaded);
         const meta = describeCachedVideo(job.sourceUrl, id);
         const video = await this.videos.addFromCache({
@@ -89,7 +98,15 @@ export class PrismaCacheJobRepository implements CacheJobStore {
           sources: uploaded.sources
         });
         videoId = video.id;
+        this.logger.info(
+          { jobId: id, videoId: video.id, url: uploaded.sources[0]?.url, stage: "completed" },
+          "cache pipeline: completed"
+        );
       } catch (error) {
+        this.logger.error(
+          { jobId: id, sourceUrl: job.sourceUrl, stage: "failed", err: errorMessage(error) },
+          "cache pipeline: failed"
+        );
         const failed = await this.prisma.cacheJob.update({
           where: { id },
           data: { status: "failed", message: `缓存失败：${errorMessage(error)}` }

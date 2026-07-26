@@ -1,4 +1,5 @@
 import { createId } from "../../shared/id.js";
+import { noopLogger, type PipelineLogger } from "../../shared/logger.js";
 import type { VideoStore } from "../videos/video.store.js";
 import { describeCachedVideo } from "./bilibili.js";
 import type { BilibiliDownloader, CdnUploader } from "./cache-pipeline.js";
@@ -10,6 +11,7 @@ import { SimulatedBilibiliDownloader, SimulatedCdnUploader } from "./simulated-c
 export type CacheJobPipelineOptions = {
   downloader?: BilibiliDownloader;
   uploader?: CdnUploader;
+  logger?: PipelineLogger;
   /** Delay between simulated progress steps; kept injectable so tests run fast. */
   stepDelayMs?: number;
 };
@@ -18,6 +20,7 @@ export class CacheJobRepository implements CacheJobStore {
   private readonly jobs = new Map<string, CacheJob>();
   private readonly downloader: BilibiliDownloader;
   private readonly uploader: CdnUploader;
+  private readonly logger: PipelineLogger;
   private readonly stepDelayMs: number;
 
   constructor(
@@ -27,6 +30,7 @@ export class CacheJobRepository implements CacheJobStore {
   ) {
     this.downloader = options?.downloader ?? new SimulatedBilibiliDownloader();
     this.uploader = options?.uploader ?? new SimulatedCdnUploader();
+    this.logger = options?.logger ?? noopLogger;
     this.stepDelayMs = options?.stepDelayMs ?? 1300;
   }
 
@@ -88,7 +92,12 @@ export class CacheJobRepository implements CacheJobStore {
         };
         if (step.status === "completed") {
           try {
+            this.logger.info({ jobId: id, sourceUrl: job.sourceUrl, stage: "download" }, "cache pipeline: download");
             const downloaded = await this.downloader.download(job.sourceUrl);
+            this.logger.info(
+              { jobId: id, artifactId: downloaded.artifactId, stage: "upload" },
+              "cache pipeline: upload"
+            );
             const uploaded = await this.uploader.upload(downloaded);
             const meta = describeCachedVideo(job.sourceUrl, id);
             const video = await this.videos.addFromCache({
@@ -102,7 +111,15 @@ export class CacheJobRepository implements CacheJobStore {
               sources: uploaded.sources
             });
             next.videoId = video.id;
+            this.logger.info(
+              { jobId: id, videoId: video.id, url: uploaded.sources[0]?.url, stage: "completed" },
+              "cache pipeline: completed"
+            );
           } catch (error) {
+            this.logger.error(
+              { jobId: id, sourceUrl: job.sourceUrl, stage: "failed", err: errorMessage(error) },
+              "cache pipeline: failed"
+            );
             const failed: CacheJob = {
               ...job,
               status: "failed",
