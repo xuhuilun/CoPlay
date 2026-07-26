@@ -9,7 +9,8 @@ import {
   type Room,
   type RoomMember,
   type RoomPresence,
-  type Video
+  type Video,
+  type VideoSource
 } from "../api/client.js";
 import { getGuestId, getNickname, setNickname } from "../api/guest.js";
 import { PageState } from "../components/PageState.js";
@@ -20,6 +21,7 @@ export function RoomPage() {
   const socketRef = useRef<Socket | null>(null);
   const currentVideoIdRef = useRef<string | null>(null);
   const pendingPlayerStateRef = useRef<PlayerState | null>(null);
+  const pendingResumeRef = useRef<{ currentTime: number; paused: boolean; playbackRate: number } | null>(null);
   const guestId = useMemo(() => getGuestId(), []);
   const initialNickname = useMemo(() => getNickname(), []);
   const [nickname, setNicknameState] = useState(initialNickname);
@@ -42,6 +44,7 @@ export function RoomPage() {
   const [duration, setDuration] = useState(0);
   const [volume, setVolume] = useState(1);
   const [switchInvite, setSwitchInvite] = useState<{ playerState: PlayerState; videoTitle: string } | null>(null);
+  const [activeSourceId, setActiveSourceId] = useState("");
   const [controlsVisible, setControlsVisible] = useState(true);
   const hideControlsTimerRef = useRef<number | null>(null);
 
@@ -81,6 +84,13 @@ export function RoomPage() {
   useEffect(() => {
     currentVideoIdRef.current = video?.id ?? null;
   }, [video]);
+
+  // A new video resets the quality selection to its default (highest) rendition.
+  useEffect(() => {
+    if (video) {
+      setActiveSourceId(resolveSources(video)[0].id);
+    }
+  }, [video?.id]);
 
   useEffect(() => {
     setIsLoadingLibrary(true);
@@ -265,6 +275,36 @@ export function RoomPage() {
     applyPlayerState(pending);
   }
 
+  // Restore local playback position after a quality change reloads the media element.
+  // Quality is a per-viewer choice, so this never broadcasts to the room.
+  function applyPendingResume() {
+    const player = videoRef.current;
+    const resume = pendingResumeRef.current;
+    if (!player || !resume) {
+      return;
+    }
+    pendingResumeRef.current = null;
+    player.currentTime = resume.currentTime;
+    player.playbackRate = resume.playbackRate;
+    if (resume.paused) {
+      player.pause();
+    } else {
+      void player.play();
+    }
+  }
+
+  function changeQuality(sourceId: string) {
+    const player = videoRef.current;
+    if (player) {
+      pendingResumeRef.current = {
+        currentTime: player.currentTime,
+        paused: player.paused,
+        playbackRate: player.playbackRate
+      };
+    }
+    setActiveSourceId(sourceId);
+  }
+
   function clearHideControlsTimer() {
     if (hideControlsTimerRef.current !== null) {
       window.clearTimeout(hideControlsTimerRef.current);
@@ -351,6 +391,8 @@ export function RoomPage() {
 
   const switchableVideos = libraryVideos.filter((item) => item.id !== video.id);
   const canSwitchVideo = Boolean(switchVideoId) && !isLoadingLibrary && !libraryError;
+  const sources = resolveSources(video);
+  const activeSource = sources.find((item) => item.id === activeSourceId) ?? sources[0];
 
   return (
     <section className="room-page">
@@ -362,7 +404,7 @@ export function RoomPage() {
         <video
           ref={videoRef}
           poster={video.posterUrl}
-          src={video.cdnUrl}
+          src={activeSource.url}
           onPlay={() => {
             setIsPaused(false);
             emitPlayerAction("play");
@@ -376,6 +418,7 @@ export function RoomPage() {
           onLoadedMetadata={(event) => {
             setDuration(event.currentTarget.duration || 0);
             setVolume(event.currentTarget.volume);
+            applyPendingResume();
             applyPendingPlayerState();
           }}
           controls={false}
@@ -416,10 +459,17 @@ export function RoomPage() {
                 onChange={(event) => setPlayerVolume(Number(event.target.value))}
               />
             </label>
-            <select aria-label="清晰度" defaultValue="auto">
-              <option value="auto">Auto</option>
-              <option value="1080p">1080p</option>
-              <option value="720p">720p</option>
+            <select
+              aria-label="清晰度"
+              value={activeSource.id}
+              onChange={(event) => changeQuality(event.target.value)}
+              disabled={sources.length <= 1}
+            >
+              {sources.map((source) => (
+                <option key={source.id} value={source.id}>
+                  {source.label}
+                </option>
+              ))}
             </select>
             <select
               aria-label="倍速"
@@ -538,6 +588,10 @@ export function RoomPage() {
       </aside>
     </section>
   );
+}
+
+function resolveSources(video: Video): VideoSource[] {
+  return video.sources?.length ? video.sources : [{ id: "auto", label: "原画", url: video.cdnUrl }];
 }
 
 function formatTime(value: number): string {

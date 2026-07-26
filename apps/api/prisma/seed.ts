@@ -2,6 +2,12 @@ import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
+// Same clip encoded at two resolutions so the quality selector is demonstrable end-to-end.
+const demoSources = [
+  { id: "720p", label: "720P 高清", url: "https://test-videos.co.uk/vids/bigbuckbunny/mp4/h264/720/Big_Buck_Bunny_720_10s_1MB.mp4" },
+  { id: "360p", label: "360P 流畅", url: "https://test-videos.co.uk/vids/bigbuckbunny/mp4/h264/360/Big_Buck_Bunny_360_10s_1MB.mp4" }
+];
+
 const videos = [
   {
     title: "星港夜航",
@@ -31,14 +37,18 @@ const videos = [
 
 async function main() {
   for (const video of videos) {
+    const data = {
+      ...video,
+      sourcesJson: demoSources,
+      cdnUrl: demoSources[0].url
+    };
     await prisma.video.upsert({
       where: { title: video.title },
-      update: video,
+      update: data,
       create: {
-        ...video,
+        ...data,
         source: "bilibili",
         sourceUrl: "https://www.bilibili.com",
-        cdnUrl: "https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4",
         durationSeconds: 30
       }
     });

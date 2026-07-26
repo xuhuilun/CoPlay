@@ -1,5 +1,5 @@
 import type { PrismaClient, Video as PrismaVideo } from "@prisma/client";
-import type { Video } from "./video.model.js";
+import { normalizeVideoSources, type Video, type VideoSource } from "./video.model.js";
 import type { CacheVideoInput, VideoStore } from "./video.store.js";
 
 const sampleVideoUrl =
@@ -38,17 +38,20 @@ export class PrismaVideoRepository implements VideoStore {
   }
 
   async addFromCache(input: CacheVideoInput): Promise<Video> {
+    const cdnUrl = input.sources?.[0]?.url ?? sampleVideoUrl;
+    const sources = normalizeVideoSources(input.sources, cdnUrl);
     const video = await this.prisma.video.create({
       data: {
         title: input.title,
         description: input.description,
         source: "bilibili",
         sourceUrl: input.sourceUrl ?? "https://www.bilibili.com",
-        cdnUrl: sampleVideoUrl,
+        cdnUrl: sources[0].url,
         posterUrl: input.posterUrl,
         durationSeconds: 30,
         tagsJson: input.tags,
-        hotScore: input.hotScore ?? 70
+        hotScore: input.hotScore ?? 70,
+        sourcesJson: sources
       }
     });
     return toVideo(video);
@@ -67,6 +70,20 @@ function toVideo(video: PrismaVideo): Video {
     durationSeconds: video.durationSeconds,
     cachedAt: video.cachedAt.toISOString(),
     tags: Array.isArray(video.tagsJson) ? video.tagsJson.map(String) : [],
-    hotScore: video.hotScore
+    hotScore: video.hotScore,
+    sources: normalizeVideoSources(parseSources(video.sourcesJson), video.cdnUrl)
   };
+}
+
+function parseSources(value: unknown): VideoSource[] | undefined {
+  if (!Array.isArray(value)) {
+    return undefined;
+  }
+  return value
+    .filter((entry): entry is Record<string, unknown> => typeof entry === "object" && entry !== null)
+    .map((entry) => ({
+      id: String(entry.id ?? ""),
+      label: String(entry.label ?? ""),
+      url: String(entry.url ?? "")
+    }));
 }

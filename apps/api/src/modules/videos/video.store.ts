@@ -1,5 +1,5 @@
 import type { Awaitable } from "../../shared/awaitable.js";
-import type { Video } from "./video.model.js";
+import type { Video, VideoSource } from "./video.model.js";
 
 export type CacheVideoInput = {
   title: string;
@@ -8,6 +8,7 @@ export type CacheVideoInput = {
   tags: string[];
   hotScore?: number;
   sourceUrl?: string;
+  sources?: VideoSource[];
 };
 
 export type VideoStore = {

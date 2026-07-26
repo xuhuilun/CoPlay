@@ -40,6 +40,7 @@ model Video {
   posterUrl       String      @db.VarChar(512)
   durationSeconds Int
   tagsJson        Json
+  sourcesJson     Json?
   hotScore        Int         @default(0)
   cachedAt        DateTime    @default(now())
   createdAt       DateTime    @default(now())

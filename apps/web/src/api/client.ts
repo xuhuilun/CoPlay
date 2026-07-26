@@ -1,3 +1,9 @@
+export type VideoSource = {
+  id: string;
+  label: string;
+  url: string;
+};
+
 export type Video = {
   id: string;
   title: string;
@@ -8,6 +14,7 @@ export type Video = {
   durationSeconds: number;
   tags: string[];
   hotScore: number;
+  sources: VideoSource[];
 };
 
 export type CacheJob = {

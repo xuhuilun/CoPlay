@@ -59,6 +59,7 @@ Progress:
 - Room invites fall back to a manual copy field when browser clipboard access is unavailable.
 - Screening room host video switches invite other members to follow or stay, preserving member autonomy, while couple rooms keep applying switches immediately for both partners.
 - The room player control bar reveals on pointer activity and auto-hides after an idle window during playback, staying visible while paused, matching the hidden-control-bar requirement.
+- Videos carry a normalized rendition list (`sources`) so the player quality selector switches resolution per viewer, preserving playback position without broadcasting to the room; freshly cached videos fall back to a single 原画 rendition.
 
 ## Phase 3: Production Integrations
 

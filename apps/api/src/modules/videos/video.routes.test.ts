@@ -72,6 +72,15 @@ test("GET /api/videos/:id returns video detail", async () => {
   assert.equal(response.json().id, video.id);
   assert.equal(response.json().title, video.title);
 
+  const detail = response.json();
+  assert.ok(Array.isArray(detail.sources) && detail.sources.length >= 1);
+  assert.equal(detail.sources[0].url, detail.cdnUrl);
+  for (const source of detail.sources) {
+    assert.ok(typeof source.id === "string" && source.id.length > 0);
+    assert.ok(typeof source.label === "string" && source.label.length > 0);
+    assert.ok(typeof source.url === "string" && source.url.length > 0);
+  }
+
   await app.close();
 });
 
