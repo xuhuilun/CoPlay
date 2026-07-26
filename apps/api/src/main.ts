@@ -3,7 +3,7 @@ import helmet from "@fastify/helmet";
 import rateLimit from "@fastify/rate-limit";
 import sensible from "@fastify/sensible";
 import { PrismaClient } from "@prisma/client";
-import Fastify from "fastify";
+import Fastify, { type FastifyRequest } from "fastify";
 import crypto from "node:crypto";
 import { createClient } from "redis";
 import { loadConfig } from "./config.js";
@@ -14,6 +14,7 @@ import { registerGithubCallbackRoutes } from "./modules/auth/github.callback.js"
 import { HttpGithubOAuthClient } from "./modules/auth/github.oauth-client.js";
 import { GithubAuthProvider } from "./modules/auth/github.provider.js";
 import { QrAuthProvider } from "./modules/auth/qr.provider.js";
+import { readCookie } from "./modules/auth/cookie.js";
 import { registerSessionRoutes } from "./modules/auth/session.routes.js";
 import { MemorySessionStore } from "./modules/auth/session.store.js";
 import { MemoryUserStore } from "./modules/auth/user.store.js";
@@ -46,6 +47,9 @@ import type { VideoStore } from "./modules/videos/video.store.js";
 const config = loadConfig();
 const app = Fastify({
   logger: true,
+  // Behind the Nginx reverse proxy, read the real client IP from X-Forwarded-For so
+  // per-submitter quota accounting is not defeated by everyone sharing the proxy address.
+  trustProxy: true,
   requestIdHeader: "x-request-id",
   genReqId: () => crypto.randomUUID()
 });
@@ -97,7 +101,12 @@ const cacheUploader: CdnUploader | undefined = config.ossUpload
       }
     )
   : undefined;
-const cachePipeline = { downloader: cacheDownloader, uploader: cacheUploader, logger: app.log };
+const cachePipeline = {
+  downloader: cacheDownloader,
+  uploader: cacheUploader,
+  logger: app.log,
+  dailyQuota: config.cacheJobDailyQuota
+};
 
 if (config.persistenceDriver === "prisma") {
   prisma = new PrismaClient();
@@ -142,8 +151,20 @@ const authRegistry = new AuthProviderRegistry([
   new QrAuthProvider("qq", "QQ")
 ]);
 
+// Quota accounting keys by the authenticated user when a session exists, else the client IP.
+const resolveSubmitter = async (request: FastifyRequest): Promise<string> => {
+  const sessionId = readCookie(request.headers.cookie, SESSION_COOKIE);
+  if (sessionId) {
+    const session = await sessions.find(sessionId);
+    if (session) {
+      return `user:${session.userId}`;
+    }
+  }
+  return `ip:${request.ip}`;
+};
+
 await registerVideoRoutes(app, videos);
-await registerCacheJobRoutes(app, cacheJobs);
+await registerCacheJobRoutes(app, cacheJobs, { resolveSubmitter });
 await registerRoomRoutes(app, rooms, videos);
 await registerAuthRoutes(app, authRegistry);
 await registerSessionRoutes(app, { sessions, users, sessionCookieName: SESSION_COOKIE });

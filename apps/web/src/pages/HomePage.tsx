@@ -91,8 +91,9 @@ export function HomePage() {
     try {
       const next = await api.createCacheJob(normalizedSourceUrl);
       setJob(next);
-    } catch {
-      setJobError("缓存任务提交失败，请确认链接来自 B 站后重试");
+    } catch (error) {
+      // Surface the server's message (e.g. quota exceeded) when it provides one.
+      setJobError(serverErrorMessage(error) ?? "缓存任务提交失败，请确认链接来自 B 站后重试");
     } finally {
       setIsSubmittingJob(false);
     }
@@ -186,6 +187,18 @@ export function HomePage() {
       </div>
     </section>
   );
+}
+
+function serverErrorMessage(error: unknown): string | undefined {
+  if (!(error instanceof Error)) {
+    return undefined;
+  }
+  try {
+    const parsed = JSON.parse(error.message) as { message?: unknown };
+    return typeof parsed.message === "string" ? parsed.message : undefined;
+  } catch {
+    return undefined;
+  }
 }
 
 function isSupportedBilibiliUrl(value: string): boolean {

@@ -3,15 +3,20 @@ import { noopLogger, type PipelineLogger } from "../../shared/logger.js";
 import type { VideoStore } from "../videos/video.store.js";
 import { describeCachedVideo } from "./bilibili.js";
 import type { BilibiliDownloader, CdnUploader } from "./cache-pipeline.js";
+import { CacheJobQuotaExceededError, type CacheJobStore } from "./cache-job.store.js";
 import type { CacheJob } from "./cache-job.model.js";
 import type { CacheJobNotifier } from "./cache-job.notifier.js";
-import type { CacheJobStore } from "./cache-job.store.js";
 import { SimulatedBilibiliDownloader, SimulatedCdnUploader } from "./simulated-cache-pipeline.js";
+
+const QUOTA_WINDOW_MS = 24 * 60 * 60 * 1000;
 
 export type CacheJobPipelineOptions = {
   downloader?: BilibiliDownloader;
   uploader?: CdnUploader;
   logger?: PipelineLogger;
+  /** Rolling 24h per-submitter job limit; 0 or undefined means unlimited. */
+  dailyQuota?: number;
+  now?: () => number;
   /** Delay between simulated progress steps; kept injectable so tests run fast. */
   stepDelayMs?: number;
 };
@@ -21,6 +26,8 @@ export class CacheJobRepository implements CacheJobStore {
   private readonly downloader: BilibiliDownloader;
   private readonly uploader: CdnUploader;
   private readonly logger: PipelineLogger;
+  private readonly dailyQuota: number;
+  private readonly now: () => number;
   private readonly stepDelayMs: number;
 
   constructor(
@@ -31,21 +38,26 @@ export class CacheJobRepository implements CacheJobStore {
     this.downloader = options?.downloader ?? new SimulatedBilibiliDownloader();
     this.uploader = options?.uploader ?? new SimulatedCdnUploader();
     this.logger = options?.logger ?? noopLogger;
+    this.dailyQuota = options?.dailyQuota ?? 0;
+    this.now = options?.now ?? Date.now;
     this.stepDelayMs = options?.stepDelayMs ?? 1300;
   }
 
-  create(sourceUrl: string): CacheJob {
+  create(sourceUrl: string, submitter: string): CacheJob {
     const reusable = this.findReusableJob(sourceUrl);
     if (reusable) {
+      // Idempotent reuse never counts against the quota — no new work is created.
       return reusable;
     }
-    const now = new Date().toISOString();
+    this.enforceQuota(submitter);
+    const now = new Date(this.now()).toISOString();
     const job: CacheJob = {
       id: createId("job"),
       sourceUrl,
       status: "queued",
       progress: 5,
       message: "缓存任务已创建，等待下载。",
+      submitter,
       createdAt: now,
       updatedAt: now
     };
@@ -57,6 +69,22 @@ export class CacheJobRepository implements CacheJobStore {
 
   findById(id: string): CacheJob | undefined {
     return this.jobs.get(id);
+  }
+
+  private enforceQuota(submitter: string): void {
+    if (this.dailyQuota <= 0) {
+      return;
+    }
+    const windowStart = this.now() - QUOTA_WINDOW_MS;
+    let count = 0;
+    for (const job of this.jobs.values()) {
+      if (job.submitter === submitter && Date.parse(job.createdAt) >= windowStart) {
+        count += 1;
+      }
+    }
+    if (count >= this.dailyQuota) {
+      throw new CacheJobQuotaExceededError(submitter, this.dailyQuota);
+    }
   }
 
   // Reuse an existing in-flight or completed job for the same source so resubmitting a

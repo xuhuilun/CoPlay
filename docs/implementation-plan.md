@@ -65,6 +65,16 @@ Progress:
 - Cache job creation is idempotent: resubmitting a source with an in-flight or completed job reuses it instead of triggering a duplicate download or library entry, while failed jobs still allow retries; worker timers are unref'd so they never block process shutdown.
 - The room player supports keyboard shortcuts (space/k play-pause, f fullscreen, m mute, arrow keys seek and volume) that are ignored while typing in form controls and reveal the control bar on use.
 
+## Phase 4: Operations & Admin
+
+1. Per-submitter cache-job quota to guard OSS storage and CDN egress from abuse.
+2. Admin backend: task list (filter/retry/cancel), user list (ban), storage & usage view.
+3. Freeze WeChat/QQ QR login (seam retained) pending business-entity qualification.
+
+Progress:
+
+- Cache jobs record a `submitter` (`user:<id>` when authenticated via session, else `ip:<addr>` with Fastify `trustProxy` so the real client IP is read behind Nginx). Creation enforces a per-submitter rolling-24h quota (`CACHE_JOB_DAILY_QUOTA`, 0 = unlimited) in both the in-memory and Prisma repositories; over-limit submissions return 429 and the web surfaces the server message. Idempotent reuse of an existing job never consumes quota. Covered by repository (limit, per-submitter isolation, reuse, window) and route (429, IP-keying) tests.
+
 ## Phase 3: Production Integrations
 
 1. Connect real Bilibili download task workers.

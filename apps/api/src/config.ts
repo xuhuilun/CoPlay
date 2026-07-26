@@ -9,6 +9,7 @@ export type AppConfig = {
   ytdlpBinary?: string;
   rateLimitMax: number;
   rateLimitWindow: string;
+  cacheJobDailyQuota: number;
   databaseUrl?: string;
   redisUrl?: string;
   githubOAuth?: GithubOAuthConfig;
@@ -44,6 +45,7 @@ export function loadConfig(): AppConfig {
     ytdlpBinary: process.env.YTDLP_BINARY?.trim() || undefined,
     rateLimitMax: parsePositiveInteger(process.env.RATE_LIMIT_MAX, 300),
     rateLimitWindow: parseStringSetting(process.env.RATE_LIMIT_WINDOW, "1 minute"),
+    cacheJobDailyQuota: parseNonNegativeInteger(process.env.CACHE_JOB_DAILY_QUOTA, 20),
     databaseUrl: parseOptionalUrlSetting(process.env.DATABASE_URL),
     redisUrl: parseOptionalUrlSetting(process.env.REDIS_URL),
     githubOAuth: parseGithubOAuth(),
@@ -104,6 +106,15 @@ function parsePositiveInteger(value: string | undefined, fallback: number): numb
 
   const parsed = Number(value);
   return Number.isInteger(parsed) && parsed > 0 ? parsed : fallback;
+}
+
+function parseNonNegativeInteger(value: string | undefined, fallback: number): number {
+  if (value === undefined) {
+    return fallback;
+  }
+  const parsed = Number(value);
+  // 0 is a valid, meaningful value here (unlimited), so only reject non-integers/negatives.
+  return Number.isInteger(parsed) && parsed >= 0 ? parsed : fallback;
 }
 
 function parseStringSetting(value: string | undefined, fallback: string): string {

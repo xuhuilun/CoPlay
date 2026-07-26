@@ -5,14 +5,17 @@ import type { Video } from "../videos/video.model.js";
 import type { CacheVideoInput, VideoStore } from "../videos/video.store.js";
 import type { CacheJob } from "./cache-job.model.js";
 import { CacheJobRepository } from "./cache-job.repository.js";
+import { CacheJobQuotaExceededError } from "./cache-job.store.js";
 import type { BilibiliDownloader } from "./cache-pipeline.js";
+
+const SUBMITTER = "ip:203.0.113.7";
 
 test("resubmitting the same source reuses the in-flight job", () => {
   const jobs = new CacheJobRepository(new StubVideoStore());
   const sourceUrl = "https://www.bilibili.com/video/BV1xx411c7mD";
 
-  const first = jobs.create(sourceUrl);
-  const second = jobs.create(sourceUrl);
+  const first = jobs.create(sourceUrl, SUBMITTER);
+  const second = jobs.create(sourceUrl, SUBMITTER);
 
   assert.equal(second.id, first.id);
 });
@@ -20,8 +23,8 @@ test("resubmitting the same source reuses the in-flight job", () => {
 test("distinct sources create distinct jobs", () => {
   const jobs = new CacheJobRepository(new StubVideoStore());
 
-  const first = jobs.create("https://www.bilibili.com/video/BV1xx411c7mD");
-  const second = jobs.create("https://www.bilibili.com/video/BV1yy411c7mE");
+  const first = jobs.create("https://www.bilibili.com/video/BV1xx411c7mD", SUBMITTER);
+  const second = jobs.create("https://www.bilibili.com/video/BV1yy411c7mE", SUBMITTER);
 
   assert.notEqual(second.id, first.id);
 });
@@ -39,7 +42,7 @@ test("a failing download marks the job as failed and logs the failed stage", asy
     logger
   });
 
-  const job = jobs.create("https://www.bilibili.com/video/BV1xx411c7mD");
+  const job = jobs.create("https://www.bilibili.com/video/BV1xx411c7mD", SUBMITTER);
   const terminal = await waitForTerminal(jobs, job.id);
 
   assert.equal(terminal.status, "failed");
@@ -55,7 +58,7 @@ test("a successful job logs download, upload, and completed stages with the task
   const logger = new RecordingLogger();
   const jobs = new CacheJobRepository(new StubVideoStore(), undefined, { stepDelayMs: 1, logger });
 
-  const job = jobs.create("https://www.bilibili.com/video/BV1xx411c7mD");
+  const job = jobs.create("https://www.bilibili.com/video/BV1xx411c7mD", SUBMITTER);
   const terminal = await waitForTerminal(jobs, job.id);
 
   assert.equal(terminal.status, "completed");
@@ -63,6 +66,49 @@ test("a successful job logs download, upload, and completed stages with the task
   assert.deepEqual(stages, ["download", "upload", "completed"]);
   const completed = logger.infos.find((e) => e.fields.stage === "completed");
   assert.ok(String(completed?.fields.url ?? "").startsWith("http"));
+});
+
+test("daily quota rejects a submitter past the limit but not others", () => {
+  const jobs = new CacheJobRepository(new StubVideoStore(), undefined, { dailyQuota: 2, stepDelayMs: 1 });
+
+  jobs.create("https://www.bilibili.com/video/BV1aa411c7m1", SUBMITTER);
+  jobs.create("https://www.bilibili.com/video/BV1aa411c7m2", SUBMITTER);
+  assert.throws(
+    () => jobs.create("https://www.bilibili.com/video/BV1aa411c7m3", SUBMITTER),
+    CacheJobQuotaExceededError
+  );
+
+  // A different submitter has its own budget.
+  const other = jobs.create("https://www.bilibili.com/video/BV1aa411c7m4", "ip:198.51.100.9");
+  assert.equal(other.status, "queued");
+});
+
+test("idempotent reuse does not consume quota", () => {
+  const jobs = new CacheJobRepository(new StubVideoStore(), undefined, { dailyQuota: 1, stepDelayMs: 1 });
+  const url = "https://www.bilibili.com/video/BV1aa411c7m1";
+
+  jobs.create(url, SUBMITTER);
+  // Same URL again reuses the job rather than counting a second time against the limit of 1.
+  assert.doesNotThrow(() => jobs.create(url, SUBMITTER));
+});
+
+test("quota only counts jobs inside the rolling 24h window", () => {
+  let now = 1_000_000_000_000;
+  const jobs = new CacheJobRepository(new StubVideoStore(), undefined, {
+    dailyQuota: 1,
+    stepDelayMs: 1,
+    now: () => now
+  });
+
+  jobs.create("https://www.bilibili.com/video/BV1aa411c7m1", SUBMITTER);
+  assert.throws(
+    () => jobs.create("https://www.bilibili.com/video/BV1aa411c7m2", SUBMITTER),
+    CacheJobQuotaExceededError
+  );
+
+  // Advance past the 24h window: the earlier job no longer counts.
+  now += 24 * 60 * 60 * 1000 + 1;
+  assert.doesNotThrow(() => jobs.create("https://www.bilibili.com/video/BV1aa411c7m3", SUBMITTER));
 });
 
 async function waitForTerminal(jobs: CacheJobRepository, id: string): Promise<CacheJob> {

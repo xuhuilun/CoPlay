@@ -4,7 +4,7 @@ import test from "node:test";
 import Fastify from "fastify";
 import type { CacheJob } from "./cache-job.model.js";
 import { registerCacheJobRoutes } from "./cache-job.routes.js";
-import type { CacheJobStore } from "./cache-job.store.js";
+import { CacheJobQuotaExceededError, type CacheJobStore } from "./cache-job.store.js";
 
 test("POST /api/cache-jobs creates a cache job", async () => {
   const { app } = await createCacheJobRoutesTestApp();
@@ -93,9 +93,39 @@ test("POST /api/cache-jobs rejects invalid URLs", async () => {
   await app.close();
 });
 
+test("POST /api/cache-jobs returns 429 when the submitter quota is exceeded", async () => {
+  const { app, jobs } = await createCacheJobRoutesTestApp();
+  jobs.quotaExhausted = true;
+
+  const response = await app.inject({
+    method: "POST",
+    url: "/api/cache-jobs",
+    payload: { sourceUrl: "https://www.bilibili.com/video/BV1xx411c7mD" }
+  });
+
+  assert.equal(response.statusCode, 429);
+  assert.equal(response.json().error, "quota_exceeded");
+
+  await app.close();
+});
+
+test("POST /api/cache-jobs keys the submitter by client IP by default", async () => {
+  const { app, jobs } = await createCacheJobRoutesTestApp();
+
+  await app.inject({
+    method: "POST",
+    url: "/api/cache-jobs",
+    payload: { sourceUrl: "https://www.bilibili.com/video/BV1xx411c7mD" }
+  });
+
+  assert.ok(jobs.lastSubmitter?.startsWith("ip:"));
+
+  await app.close();
+});
+
 test("GET /api/cache-jobs/:id returns an existing cache job", async () => {
   const { app, jobs } = await createCacheJobRoutesTestApp();
-  const created = await jobs.create("https://www.bilibili.com/video/BV1xx411c7mD");
+  const created = await jobs.create("https://www.bilibili.com/video/BV1xx411c7mD", "ip:test");
 
   const response = await app.inject({
     method: "GET",
@@ -110,7 +140,7 @@ test("GET /api/cache-jobs/:id returns an existing cache job", async () => {
 
 test("GET /api/cache-jobs/:id normalizes route ids", async () => {
   const { app, jobs } = await createCacheJobRoutesTestApp();
-  const created = await jobs.create("https://www.bilibili.com/video/BV1xx411c7mD");
+  const created = await jobs.create("https://www.bilibili.com/video/BV1xx411c7mD", "ip:test");
 
   const padded = await app.inject({
     method: "GET",
@@ -152,8 +182,14 @@ async function createCacheJobRoutesTestApp() {
 class TestCacheJobStore implements CacheJobStore {
   private readonly jobs = new Map<string, CacheJob>();
   private nextId = 1;
+  quotaExhausted = false;
+  lastSubmitter?: string;
 
-  create(sourceUrl: string): CacheJob {
+  create(sourceUrl: string, submitter: string): CacheJob {
+    this.lastSubmitter = submitter;
+    if (this.quotaExhausted) {
+      throw new CacheJobQuotaExceededError(submitter, 0);
+    }
     const now = "2026-07-19T00:00:00.000Z";
     const job: CacheJob = {
       id: `job_${this.nextId++}`,
@@ -161,6 +197,7 @@ class TestCacheJobStore implements CacheJobStore {
       status: "queued",
       progress: 5,
       message: "缓存任务已创建，等待下载。",
+      submitter,
       createdAt: now,
       updatedAt: now
     };

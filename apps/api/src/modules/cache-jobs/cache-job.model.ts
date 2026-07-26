@@ -7,6 +7,8 @@ export type CacheJob = {
   progress: number;
   message: string;
   videoId?: string;
+  /** Identity of who submitted the job — `user:<id>` when authenticated, else `ip:<addr>`. */
+  submitter: string;
   createdAt: string;
   updatedAt: string;
 };

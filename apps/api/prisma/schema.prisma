@@ -60,6 +60,7 @@ model CacheJob {
   progress  Int            @default(0)
   message   String         @db.VarChar(255)
   videoId   String?
+  submitter String         @default("") @db.VarChar(160)
   createdAt DateTime       @default(now())
   updatedAt DateTime       @updatedAt
 
@@ -67,6 +68,7 @@ model CacheJob {
 
   @@index([status])
   @@index([createdAt])
+  @@index([submitter, createdAt])
 }
 
 model Room {

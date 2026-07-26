@@ -6,13 +6,17 @@ import type { BilibiliDownloader, CdnUploader } from "./cache-pipeline.js";
 import type { CacheJobPipelineOptions } from "./cache-job.repository.js";
 import type { CacheJob } from "./cache-job.model.js";
 import type { CacheJobNotifier } from "./cache-job.notifier.js";
-import type { CacheJobStore } from "./cache-job.store.js";
+import { CacheJobQuotaExceededError, type CacheJobStore } from "./cache-job.store.js";
 import { SimulatedBilibiliDownloader, SimulatedCdnUploader } from "./simulated-cache-pipeline.js";
+
+const QUOTA_WINDOW_MS = 24 * 60 * 60 * 1000;
 
 export class PrismaCacheJobRepository implements CacheJobStore {
   private readonly downloader: BilibiliDownloader;
   private readonly uploader: CdnUploader;
   private readonly logger: PipelineLogger;
+  private readonly dailyQuota: number;
+  private readonly now: () => number;
 
   constructor(
     private readonly prisma: PrismaClient,
@@ -23,9 +27,11 @@ export class PrismaCacheJobRepository implements CacheJobStore {
     this.downloader = options?.downloader ?? new SimulatedBilibiliDownloader();
     this.uploader = options?.uploader ?? new SimulatedCdnUploader();
     this.logger = options?.logger ?? noopLogger;
+    this.dailyQuota = options?.dailyQuota ?? 0;
+    this.now = options?.now ?? Date.now;
   }
 
-  async create(sourceUrl: string): Promise<CacheJob> {
+  async create(sourceUrl: string, submitter: string): Promise<CacheJob> {
     // Reuse an in-flight or completed job for the same source to avoid duplicate
     // downloads and library entries; failed jobs are left out so retries can proceed.
     const reusable = await this.prisma.cacheJob.findFirst({
@@ -33,11 +39,14 @@ export class PrismaCacheJobRepository implements CacheJobStore {
       orderBy: { createdAt: "desc" }
     });
     if (reusable) {
+      // Idempotent reuse never counts against the quota — no new work is created.
       return toCacheJob(reusable);
     }
+    await this.enforceQuota(submitter);
     const job = await this.prisma.cacheJob.create({
       data: {
         sourceUrl,
+        submitter,
         status: "queued",
         progress: 5,
         message: "缓存任务已创建，等待下载。"
@@ -52,6 +61,18 @@ export class PrismaCacheJobRepository implements CacheJobStore {
   async findById(id: string): Promise<CacheJob | undefined> {
     const job = await this.prisma.cacheJob.findUnique({ where: { id } });
     return job ? toCacheJob(job) : undefined;
+  }
+
+  private async enforceQuota(submitter: string): Promise<void> {
+    if (this.dailyQuota <= 0) {
+      return;
+    }
+    const count = await this.prisma.cacheJob.count({
+      where: { submitter, createdAt: { gte: new Date(this.now() - QUOTA_WINDOW_MS) } }
+    });
+    if (count >= this.dailyQuota) {
+      throw new CacheJobQuotaExceededError(submitter, this.dailyQuota);
+    }
   }
 
   private simulate(id: string) {
@@ -141,6 +162,7 @@ function toCacheJob(job: PrismaCacheJob): CacheJob {
     progress: job.progress,
     message: job.message,
     videoId: job.videoId ?? undefined,
+    submitter: job.submitter,
     createdAt: job.createdAt.toISOString(),
     updatedAt: job.updatedAt.toISOString()
   };

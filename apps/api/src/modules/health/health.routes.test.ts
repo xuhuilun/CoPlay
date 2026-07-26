@@ -118,6 +118,7 @@ function baseConfig(overrides: Partial<AppConfig> = {}): AppConfig {
     cacheDownloader: "simulated",
     rateLimitMax: 300,
     rateLimitWindow: "1 minute",
+    cacheJobDailyQuota: 20,
     ...overrides
   };
 }
