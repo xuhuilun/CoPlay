@@ -110,6 +110,31 @@ button:disabled {
   color: var(--text);
 }
 
+.login-menu {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: 6px;
+  padding-left: 10px;
+  border-left: 1px solid var(--line);
+  color: var(--muted);
+}
+
+.login-provider {
+  padding: 8px 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.07);
+  color: var(--text);
+  font: inherit;
+  cursor: pointer;
+}
+
+.login-provider:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 main {
   padding: 34px clamp(18px, 5vw, 64px) 70px;
 }

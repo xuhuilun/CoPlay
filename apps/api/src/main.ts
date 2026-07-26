@@ -7,6 +7,10 @@ import Fastify from "fastify";
 import crypto from "node:crypto";
 import { createClient } from "redis";
 import { loadConfig } from "./config.js";
+import { AuthProviderRegistry } from "./modules/auth/auth.registry.js";
+import { registerAuthRoutes } from "./modules/auth/auth.routes.js";
+import { GithubAuthProvider } from "./modules/auth/github.provider.js";
+import { QrAuthProvider } from "./modules/auth/qr.provider.js";
 import { registerCacheJobGateway } from "./modules/cache-jobs/cache-job.gateway.js";
 import { CacheJobNotifier } from "./modules/cache-jobs/cache-job.notifier.js";
 import { CacheJobRepository } from "./modules/cache-jobs/cache-job.repository.js";
@@ -92,9 +96,16 @@ await registerHealthRoutes(app, {
   getRedisClient: () => redisPresenceClient
 });
 
+const authRegistry = new AuthProviderRegistry([
+  new GithubAuthProvider(config.githubOAuth),
+  new QrAuthProvider("wechat", "微信"),
+  new QrAuthProvider("qq", "QQ")
+]);
+
 await registerVideoRoutes(app, videos);
 await registerCacheJobRoutes(app, cacheJobs);
 await registerRoomRoutes(app, rooms, videos);
+await registerAuthRoutes(app, authRegistry);
 
 const io = registerRealtimeGateway(app.server, rooms, presence, config.webOrigins);
 const unregisterCacheJobGateway = registerCacheJobGateway(io, cacheJobNotifier);

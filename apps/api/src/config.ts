@@ -9,6 +9,12 @@ export type AppConfig = {
   rateLimitWindow: string;
   databaseUrl?: string;
   redisUrl?: string;
+  githubOAuth?: GithubOAuthConfig;
+};
+
+export type GithubOAuthConfig = {
+  clientId: string;
+  redirectUri: string;
 };
 
 export function loadConfig(): AppConfig {
@@ -24,8 +30,18 @@ export function loadConfig(): AppConfig {
     rateLimitMax: parsePositiveInteger(process.env.RATE_LIMIT_MAX, 300),
     rateLimitWindow: parseStringSetting(process.env.RATE_LIMIT_WINDOW, "1 minute"),
     databaseUrl: parseOptionalUrlSetting(process.env.DATABASE_URL),
-    redisUrl: parseOptionalUrlSetting(process.env.REDIS_URL)
+    redisUrl: parseOptionalUrlSetting(process.env.REDIS_URL),
+    githubOAuth: parseGithubOAuth()
   };
+}
+
+function parseGithubOAuth(): GithubOAuthConfig | undefined {
+  const clientId = process.env.GITHUB_CLIENT_ID?.trim();
+  const redirectUri = parseOptionalUrlSetting(process.env.GITHUB_REDIRECT_URI);
+  if (!clientId || !redirectUri) {
+    return undefined;
+  }
+  return { clientId, redirectUri };
 }
 
 function parseWebOrigins(): string[] {

@@ -58,6 +58,19 @@ export type Room = {
   playerState: PlayerState;
 };
 
+export type AuthProviderInfo = {
+  id: string;
+  displayName: string;
+  kind: "oauth" | "qr";
+  available: boolean;
+};
+
+export type AuthStart = {
+  kind: "redirect" | "qr";
+  url?: string;
+  imageUrl?: string;
+};
+
 const apiBaseUrl = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:4000/api";
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
@@ -100,7 +113,9 @@ export const api = {
     request<Room>(`/rooms/${id}/join`, {
       method: "POST",
       body: JSON.stringify(payload)
-    })
+    }),
+  authProviders: () => request<{ items: AuthProviderInfo[] }>("/auth/providers"),
+  startAuth: (id: string) => request<AuthStart>(`/auth/providers/${id}/start`, { method: "POST" })
 };
 
 export const socketUrl = import.meta.env.VITE_SOCKET_URL ?? "http://localhost:4000";
