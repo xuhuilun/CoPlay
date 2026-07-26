@@ -208,4 +208,16 @@ class TestCacheJobStore implements CacheJobStore {
   findById(id: string): CacheJob | undefined {
     return this.jobs.get(id);
   }
+
+  list(): CacheJob[] {
+    return [...this.jobs.values()];
+  }
+
+  retry(id: string): CacheJob | undefined {
+    return this.jobs.get(id);
+  }
+
+  cancel(id: string): CacheJob | undefined {
+    return this.jobs.get(id);
+  }
 }

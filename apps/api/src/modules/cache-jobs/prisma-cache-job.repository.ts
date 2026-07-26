@@ -6,7 +6,12 @@ import type { BilibiliDownloader, CdnUploader } from "./cache-pipeline.js";
 import type { CacheJobPipelineOptions } from "./cache-job.repository.js";
 import type { CacheJob } from "./cache-job.model.js";
 import type { CacheJobNotifier } from "./cache-job.notifier.js";
-import { CacheJobQuotaExceededError, type CacheJobStore } from "./cache-job.store.js";
+import {
+  CacheJobQuotaExceededError,
+  isTerminal,
+  type CacheJobListFilter,
+  type CacheJobStore
+} from "./cache-job.store.js";
 import { SimulatedBilibiliDownloader, SimulatedCdnUploader } from "./simulated-cache-pipeline.js";
 
 const QUOTA_WINDOW_MS = 24 * 60 * 60 * 1000;
@@ -35,7 +40,7 @@ export class PrismaCacheJobRepository implements CacheJobStore {
     // Reuse an in-flight or completed job for the same source to avoid duplicate
     // downloads and library entries; failed jobs are left out so retries can proceed.
     const reusable = await this.prisma.cacheJob.findFirst({
-      where: { sourceUrl, status: { not: "failed" } },
+      where: { sourceUrl, status: { notIn: ["failed", "cancelled"] } },
       orderBy: { createdAt: "desc" }
     });
     if (reusable) {
@@ -61,6 +66,44 @@ export class PrismaCacheJobRepository implements CacheJobStore {
   async findById(id: string): Promise<CacheJob | undefined> {
     const job = await this.prisma.cacheJob.findUnique({ where: { id } });
     return job ? toCacheJob(job) : undefined;
+  }
+
+  async list(filter?: CacheJobListFilter): Promise<CacheJob[]> {
+    const jobs = await this.prisma.cacheJob.findMany({
+      where: filter?.status ? { status: filter.status } : undefined,
+      orderBy: { createdAt: "desc" },
+      take: filter?.limit
+    });
+    return jobs.map(toCacheJob);
+  }
+
+  async retry(id: string): Promise<CacheJob | undefined> {
+    const job = await this.prisma.cacheJob.findUnique({ where: { id } });
+    if (!job || (job.status !== "failed" && job.status !== "cancelled")) {
+      return undefined;
+    }
+    const requeued = await this.prisma.cacheJob.update({
+      where: { id },
+      data: { status: "queued", progress: 5, message: "任务已重新排队。", videoId: null }
+    });
+    this.simulate(id);
+    const cacheJob = toCacheJob(requeued);
+    this.notifier?.publish(cacheJob);
+    return cacheJob;
+  }
+
+  async cancel(id: string): Promise<CacheJob | undefined> {
+    const job = await this.prisma.cacheJob.findUnique({ where: { id } });
+    if (!job || isTerminal(job.status)) {
+      return undefined;
+    }
+    const cancelled = await this.prisma.cacheJob.update({
+      where: { id },
+      data: { status: "cancelled", message: "任务已被取消。" }
+    });
+    const cacheJob = toCacheJob(cancelled);
+    this.notifier?.publish(cacheJob);
+    return cacheJob;
   }
 
   private async enforceQuota(submitter: string): Promise<void> {
@@ -93,7 +136,7 @@ export class PrismaCacheJobRepository implements CacheJobStore {
 
   private async advance(id: string, step: Pick<CacheJob, "status" | "progress" | "message">) {
     const job = await this.prisma.cacheJob.findUnique({ where: { id } });
-    if (!job || job.status === "completed") {
+    if (!job || isTerminal(job.status)) {
       return;
     }
 

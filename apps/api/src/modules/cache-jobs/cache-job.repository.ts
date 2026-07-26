@@ -3,7 +3,12 @@ import { noopLogger, type PipelineLogger } from "../../shared/logger.js";
 import type { VideoStore } from "../videos/video.store.js";
 import { describeCachedVideo } from "./bilibili.js";
 import type { BilibiliDownloader, CdnUploader } from "./cache-pipeline.js";
-import { CacheJobQuotaExceededError, type CacheJobStore } from "./cache-job.store.js";
+import {
+  CacheJobQuotaExceededError,
+  isTerminal,
+  type CacheJobListFilter,
+  type CacheJobStore
+} from "./cache-job.store.js";
 import type { CacheJob } from "./cache-job.model.js";
 import type { CacheJobNotifier } from "./cache-job.notifier.js";
 import { SimulatedBilibiliDownloader, SimulatedCdnUploader } from "./simulated-cache-pipeline.js";
@@ -71,6 +76,51 @@ export class CacheJobRepository implements CacheJobStore {
     return this.jobs.get(id);
   }
 
+  list(filter?: CacheJobListFilter): CacheJob[] {
+    let jobs = [...this.jobs.values()];
+    if (filter?.status) {
+      jobs = jobs.filter((job) => job.status === filter.status);
+    }
+    jobs.sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt));
+    return filter?.limit ? jobs.slice(0, filter.limit) : jobs;
+  }
+
+  retry(id: string): CacheJob | undefined {
+    const job = this.jobs.get(id);
+    if (!job || (job.status !== "failed" && job.status !== "cancelled")) {
+      return undefined;
+    }
+    const now = new Date(this.now()).toISOString();
+    const requeued: CacheJob = {
+      ...job,
+      status: "queued",
+      progress: 5,
+      message: "任务已重新排队。",
+      videoId: undefined,
+      updatedAt: now
+    };
+    this.jobs.set(id, requeued);
+    this.notifier?.publish(requeued);
+    this.simulate(id);
+    return requeued;
+  }
+
+  cancel(id: string): CacheJob | undefined {
+    const job = this.jobs.get(id);
+    if (!job || isTerminal(job.status)) {
+      return undefined;
+    }
+    const cancelled: CacheJob = {
+      ...job,
+      status: "cancelled",
+      message: "任务已被取消。",
+      updatedAt: new Date(this.now()).toISOString()
+    };
+    this.jobs.set(id, cancelled);
+    this.notifier?.publish(cancelled);
+    return cancelled;
+  }
+
   private enforceQuota(submitter: string): void {
     if (this.dailyQuota <= 0) {
       return;
@@ -92,7 +142,7 @@ export class CacheJobRepository implements CacheJobStore {
   // are not reused, allowing a genuine retry.
   private findReusableJob(sourceUrl: string): CacheJob | undefined {
     for (const job of this.jobs.values()) {
-      if (job.sourceUrl === sourceUrl && job.status !== "failed") {
+      if (job.sourceUrl === sourceUrl && job.status !== "failed" && job.status !== "cancelled") {
         return job;
       }
     }
@@ -110,7 +160,7 @@ export class CacheJobRepository implements CacheJobStore {
     steps.forEach((step, index) => {
       const timer = setTimeout(async () => {
         const job = this.jobs.get(id);
-        if (!job || job.status === "completed") {
+        if (!job || isTerminal(job.status)) {
           return;
         }
         const next: CacheJob = {

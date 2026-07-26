@@ -18,6 +18,7 @@ enum CacheJobStatus {
   uploading
   completed
   failed
+  cancelled
 }
 
 enum RoomType {

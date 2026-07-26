@@ -74,6 +74,7 @@ Progress:
 Progress:
 
 - Cache jobs record a `submitter` (`user:<id>` when authenticated via session, else `ip:<addr>` with Fastify `trustProxy` so the real client IP is read behind Nginx). Creation enforces a per-submitter rolling-24h quota (`CACHE_JOB_DAILY_QUOTA`, 0 = unlimited) in both the in-memory and Prisma repositories; over-limit submissions return 429 and the web surfaces the server message. Idempotent reuse of an existing job never consumes quota. Covered by repository (limit, per-submitter isolation, reuse, window) and route (429, IP-keying) tests.
+- Admin backend task management: cache jobs gained a `cancelled` status and `list`/`retry`/`cancel` operations (both repositories; the worker skips terminal states so a cancelled job stops progressing, and cancelled jobs are excluded from idempotent reuse). Admin routes (`GET /api/admin/cache-jobs` with status filter, `POST .../:id/retry`, `POST .../:id/cancel`, `GET /api/admin/me`) are guarded by a GitHub-id allowlist (`ADMIN_GITHUB_IDS`) — no separate admin account system; anonymous callers get 401 and non-allowlisted users 403. Covered by allowlist, guard (401/403), list-filter, and retry/cancel tests.
 
 ## Phase 3: Production Integrations
 

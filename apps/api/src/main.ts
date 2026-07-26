@@ -14,6 +14,7 @@ import { registerGithubCallbackRoutes } from "./modules/auth/github.callback.js"
 import { HttpGithubOAuthClient } from "./modules/auth/github.oauth-client.js";
 import { GithubAuthProvider } from "./modules/auth/github.provider.js";
 import { QrAuthProvider } from "./modules/auth/qr.provider.js";
+import { registerAdminRoutes } from "./modules/admin/admin.routes.js";
 import { readCookie } from "./modules/auth/cookie.js";
 import { registerSessionRoutes } from "./modules/auth/session.routes.js";
 import { MemorySessionStore } from "./modules/auth/session.store.js";
@@ -168,6 +169,15 @@ await registerCacheJobRoutes(app, cacheJobs, { resolveSubmitter });
 await registerRoomRoutes(app, rooms, videos);
 await registerAuthRoutes(app, authRegistry);
 await registerSessionRoutes(app, { sessions, users, sessionCookieName: SESSION_COOKIE });
+await registerAdminRoutes(app, {
+  jobs: cacheJobs,
+  access: {
+    sessions,
+    users,
+    sessionCookieName: SESSION_COOKIE,
+    adminGithubIds: config.adminGithubIds
+  }
+});
 
 if (config.githubOAuth) {
   const githubClient = new HttpGithubOAuthClient({

@@ -10,6 +10,7 @@ export type AppConfig = {
   rateLimitMax: number;
   rateLimitWindow: string;
   cacheJobDailyQuota: number;
+  adminGithubIds: string[];
   databaseUrl?: string;
   redisUrl?: string;
   githubOAuth?: GithubOAuthConfig;
@@ -46,6 +47,7 @@ export function loadConfig(): AppConfig {
     rateLimitMax: parsePositiveInteger(process.env.RATE_LIMIT_MAX, 300),
     rateLimitWindow: parseStringSetting(process.env.RATE_LIMIT_WINDOW, "1 minute"),
     cacheJobDailyQuota: parseNonNegativeInteger(process.env.CACHE_JOB_DAILY_QUOTA, 20),
+    adminGithubIds: parseCsvSetting(process.env.ADMIN_GITHUB_IDS),
     databaseUrl: parseOptionalUrlSetting(process.env.DATABASE_URL),
     redisUrl: parseOptionalUrlSetting(process.env.REDIS_URL),
     githubOAuth: parseGithubOAuth(),
@@ -106,6 +108,16 @@ function parsePositiveInteger(value: string | undefined, fallback: number): numb
 
   const parsed = Number(value);
   return Number.isInteger(parsed) && parsed > 0 ? parsed : fallback;
+}
+
+function parseCsvSetting(value: string | undefined): string[] {
+  if (!value) {
+    return [];
+  }
+  return value
+    .split(",")
+    .map((entry) => entry.trim())
+    .filter((entry) => entry.length > 0);
 }
 
 function parseNonNegativeInteger(value: string | undefined, fallback: number): number {

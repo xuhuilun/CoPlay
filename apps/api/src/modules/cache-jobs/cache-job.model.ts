@@ -1,4 +1,10 @@
-export type CacheJobStatus = "queued" | "downloading" | "uploading" | "completed" | "failed";
+export type CacheJobStatus =
+  | "queued"
+  | "downloading"
+  | "uploading"
+  | "completed"
+  | "failed"
+  | "cancelled";
 
 export type CacheJob = {
   id: string;

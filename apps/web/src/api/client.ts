@@ -20,7 +20,7 @@ export type Video = {
 export type CacheJob = {
   id: string;
   sourceUrl: string;
-  status: "queued" | "downloading" | "uploading" | "completed" | "failed";
+  status: "queued" | "downloading" | "uploading" | "completed" | "failed" | "cancelled";
   progress: number;
   message: string;
   videoId?: string;

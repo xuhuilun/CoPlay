@@ -119,6 +119,7 @@ function baseConfig(overrides: Partial<AppConfig> = {}): AppConfig {
     rateLimitMax: 300,
     rateLimitWindow: "1 minute",
     cacheJobDailyQuota: 20,
+    adminGithubIds: [],
     ...overrides
   };
 }
