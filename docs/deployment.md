@@ -61,8 +61,27 @@ npm run prisma:generate -w apps/api
 npm test
 npm run typecheck
 npm run build
-npm audit --omit=dev
+npm audit --omit=dev --audit-level=high
 ```
+
+The audit gate fails the build on high/critical production advisories; see `docs/security.md` for the accepted moderate advisories.
+
+## Launch Smoke Test
+
+After deploying (or locally), start the API with the real environment and run a single
+end-to-end check that drives the cache state machine to completion, validates the returned
+CDN/OSS URL serves bytes, and exercises GitHub OAuth (real token exchange against GitHub):
+
+```bash
+# API must be running with your real .env (OSS_* + GITHUB_* + CACHE_DOWNLOADER=ytdlp)
+npm run smoke
+```
+
+Configure it via `SMOKE_API_BASE`, `SMOKE_BILIBILI_URL` (a real short public video), and
+`SMOKE_TIMEOUT_MS`. It exits non-zero on any failed check. GitHub OAuth steps are skipped when
+the provider is not configured; the callback check passes on `401 code_rejected` (the dummy code
+really reached GitHub and was rejected) and fails on `502` (GitHub unreachable). A full browser
+login is still required for a real session, which the smoke test cannot automate headlessly.
 
 ## Request Tracing
 

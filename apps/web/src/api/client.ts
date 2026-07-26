@@ -81,11 +81,14 @@ export type SessionUser = {
 const apiBaseUrl = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:4000/api";
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
+  // Only declare a JSON content-type when a body is actually sent; otherwise Fastify's JSON
+  // parser rejects the empty body of bodyless POSTs (e.g. /auth/logout) with 400.
+  const hasBody = init?.body !== undefined && init?.body !== null;
   const response = await fetch(`${apiBaseUrl}${path}`, {
     // Include the session cookie so authenticated endpoints (e.g. /auth/me) resolve the user.
     credentials: "include",
     headers: {
-      "Content-Type": "application/json",
+      ...(hasBody ? { "Content-Type": "application/json" } : {}),
       ...init?.headers
     },
     ...init
