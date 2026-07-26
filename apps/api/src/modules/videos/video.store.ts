@@ -9,6 +9,7 @@ export type CacheVideoInput = {
   hotScore?: number;
   sourceUrl?: string;
   sources?: VideoSource[];
+  durationSeconds?: number;
 };
 
 export type VideoStore = {

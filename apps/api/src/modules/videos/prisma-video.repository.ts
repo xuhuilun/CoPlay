@@ -48,7 +48,7 @@ export class PrismaVideoRepository implements VideoStore {
         sourceUrl: input.sourceUrl ?? "https://www.bilibili.com",
         cdnUrl: sources[0].url,
         posterUrl: input.posterUrl,
-        durationSeconds: 30,
+        durationSeconds: input.durationSeconds ?? 30,
         tagsJson: input.tags,
         hotScore: input.hotScore ?? 70,
         sourcesJson: sources

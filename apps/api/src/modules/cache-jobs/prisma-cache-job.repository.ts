@@ -1,19 +1,25 @@
 import type { CacheJob as PrismaCacheJob, PrismaClient } from "@prisma/client";
 import type { VideoStore } from "../videos/video.store.js";
 import { describeCachedVideo } from "./bilibili.js";
+import type { BilibiliDownloader, CdnUploader } from "./cache-pipeline.js";
 import type { CacheJob } from "./cache-job.model.js";
 import type { CacheJobNotifier } from "./cache-job.notifier.js";
 import type { CacheJobStore } from "./cache-job.store.js";
-
-const posterUrl =
-  "https://images.unsplash.com/photo-1517604931442-7e0c8ed2963c?auto=format&fit=crop&w=1200&q=80";
+import { SimulatedBilibiliDownloader, SimulatedCdnUploader } from "./simulated-cache-pipeline.js";
 
 export class PrismaCacheJobRepository implements CacheJobStore {
+  private readonly downloader: BilibiliDownloader;
+  private readonly uploader: CdnUploader;
+
   constructor(
     private readonly prisma: PrismaClient,
     private readonly videos: VideoStore,
-    private readonly notifier?: CacheJobNotifier
-  ) {}
+    private readonly notifier?: CacheJobNotifier,
+    pipeline?: { downloader?: BilibiliDownloader; uploader?: CdnUploader }
+  ) {
+    this.downloader = pipeline?.downloader ?? new SimulatedBilibiliDownloader();
+    this.uploader = pipeline?.uploader ?? new SimulatedCdnUploader();
+  }
 
   async create(sourceUrl: string): Promise<CacheJob> {
     // Reuse an in-flight or completed job for the same source to avoid duplicate
@@ -68,14 +74,18 @@ export class PrismaCacheJobRepository implements CacheJobStore {
 
     let videoId = job.videoId;
     if (step.status === "completed") {
+      const downloaded = await this.downloader.download(job.sourceUrl);
+      const uploaded = await this.uploader.upload(downloaded);
       const meta = describeCachedVideo(job.sourceUrl, id);
       const video = await this.videos.addFromCache({
         title: meta.title,
         description: meta.description,
-        posterUrl,
+        posterUrl: uploaded.posterUrl,
         tags: ["bilibili", "cached"],
         sourceUrl: job.sourceUrl,
-        hotScore: 78
+        hotScore: 78,
+        durationSeconds: downloaded.durationSeconds,
+        sources: uploaded.sources
       });
       videoId = video.id;
     }

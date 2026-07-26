@@ -71,3 +71,7 @@ Progress:
 2. Upload cached files to CDN.
 3. Add GitHub and QR-code login providers.
 4. Add observability, rate limits, and admin operations.
+
+Progress:
+
+- The cache worker orchestrates two injectable ports — `BilibiliDownloader` (fetch the source into storage) and `CdnUploader` (publish renditions to the CDN) — with default simulated implementations and unit coverage. A production integration only needs to implement these ports (e.g. a yt-dlp downloader and an object-storage/CDN uploader); the worker, job status handling, and library persistence stay unchanged. Downloaded duration and uploaded renditions now flow into the cached library video instead of hardcoded values.
