@@ -63,6 +63,7 @@ Progress:
 - The fullscreen control expands the theater container rather than the bare video element so the custom control overlay stays visible and usable in fullscreen, and toggles back out when already fullscreen.
 - Bilibili cache submissions are validated to carry a real BV/av video id (or a b23.tv short link) so homepage and listing links are rejected in both API and web, and completed cache jobs surface the recognized video id in the cached library title.
 - Cache job creation is idempotent: resubmitting a source with an in-flight or completed job reuses it instead of triggering a duplicate download or library entry, while failed jobs still allow retries; worker timers are unref'd so they never block process shutdown.
+- The room player supports keyboard shortcuts (space/k play-pause, f fullscreen, m mute, arrow keys seek and volume) that are ignored while typing in form controls and reveal the control bar on use.
 
 ## Phase 3: Production Integrations
 

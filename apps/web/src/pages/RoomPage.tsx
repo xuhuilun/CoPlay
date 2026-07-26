@@ -345,6 +345,59 @@ export function RoomPage() {
   // Release the idle timer when the room page unmounts.
   useEffect(() => clearHideControlsTimer, []);
 
+  // Keyboard shortcuts for the player, ignored while typing in form controls.
+  useEffect(() => {
+    function onKeyDown(event: KeyboardEvent) {
+      const target = event.target as HTMLElement | null;
+      if (
+        target &&
+        (target.tagName === "INPUT" ||
+          target.tagName === "TEXTAREA" ||
+          target.tagName === "SELECT" ||
+          target.isContentEditable)
+      ) {
+        return;
+      }
+      const player = videoRef.current;
+      if (!player) {
+        return;
+      }
+      let handled = true;
+      switch (event.key) {
+        case " ":
+        case "k":
+          togglePlayback();
+          break;
+        case "f":
+          toggleFullscreen();
+          break;
+        case "m":
+          player.muted = !player.muted;
+          break;
+        case "ArrowLeft":
+          seekTo(Math.max(0, player.currentTime - 5));
+          break;
+        case "ArrowRight":
+          seekTo(Math.min(player.duration || player.currentTime, player.currentTime + 5));
+          break;
+        case "ArrowUp":
+          setPlayerVolume(Math.min(1, Number((player.volume + 0.05).toFixed(2))));
+          break;
+        case "ArrowDown":
+          setPlayerVolume(Math.max(0, Number((player.volume - 0.05).toFixed(2))));
+          break;
+        default:
+          handled = false;
+      }
+      if (handled) {
+        event.preventDefault();
+        revealControls();
+      }
+    }
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [room?.id, isPaused]);
+
   function togglePlayback() {
     const player = videoRef.current;
     if (!player) {
