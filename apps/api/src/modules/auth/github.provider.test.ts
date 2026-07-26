@@ -17,7 +17,7 @@ test("github provider is unavailable without configuration", async () => {
 test("github provider builds an authorize url when configured", async () => {
   const provider = new GithubAuthProvider(
     { clientId: "client_123", redirectUri: "https://bilisync.top/auth/github/callback" },
-    () => "state_fixed"
+    { generateState: () => "state_fixed" }
   );
 
   assert.equal(provider.info().available, true);

@@ -15,6 +15,7 @@ export type AppConfig = {
 export type GithubOAuthConfig = {
   clientId: string;
   redirectUri: string;
+  clientSecret?: string;
 };
 
 export function loadConfig(): AppConfig {
@@ -41,7 +42,8 @@ function parseGithubOAuth(): GithubOAuthConfig | undefined {
   if (!clientId || !redirectUri) {
     return undefined;
   }
-  return { clientId, redirectUri };
+  const clientSecret = process.env.GITHUB_CLIENT_SECRET?.trim() || undefined;
+  return { clientId, redirectUri, clientSecret };
 }
 
 function parseWebOrigins(): string[] {

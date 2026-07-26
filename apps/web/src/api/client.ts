@@ -71,10 +71,19 @@ export type AuthStart = {
   imageUrl?: string;
 };
 
+export type SessionUser = {
+  id: string;
+  provider: string;
+  displayName: string;
+  avatarUrl: string;
+};
+
 const apiBaseUrl = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:4000/api";
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(`${apiBaseUrl}${path}`, {
+    // Include the session cookie so authenticated endpoints (e.g. /auth/me) resolve the user.
+    credentials: "include",
     headers: {
       "Content-Type": "application/json",
       ...init?.headers
@@ -115,7 +124,9 @@ export const api = {
       body: JSON.stringify(payload)
     }),
   authProviders: () => request<{ items: AuthProviderInfo[] }>("/auth/providers"),
-  startAuth: (id: string) => request<AuthStart>(`/auth/providers/${id}/start`, { method: "POST" })
+  startAuth: (id: string) => request<AuthStart>(`/auth/providers/${id}/start`, { method: "POST" }),
+  me: () => request<{ user: SessionUser | null }>("/auth/me"),
+  logout: () => request<{ ok: boolean }>("/auth/logout", { method: "POST" })
 };
 
 export const socketUrl = import.meta.env.VITE_SOCKET_URL ?? "http://localhost:4000";

@@ -63,7 +63,7 @@ async function createAuthRoutesTestApp() {
   const registry = new AuthProviderRegistry([
     new GithubAuthProvider(
       { clientId: "client_123", redirectUri: "https://bilisync.top/auth/github/callback" },
-      () => "state_fixed"
+      { generateState: () => "state_fixed" }
     ),
     new QrAuthProvider("wechat", "微信"),
     new QrAuthProvider("qq", "QQ")
