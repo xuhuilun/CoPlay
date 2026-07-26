@@ -57,6 +57,7 @@ Progress:
 - The web cache submission form validates Bilibili URLs before sending cache job requests.
 - Cache job source URLs are capped at 512 characters in API and web validation.
 - Room invites fall back to a manual copy field when browser clipboard access is unavailable.
+- Screening room host video switches invite other members to follow or stay, preserving member autonomy, while couple rooms keep applying switches immediately for both partners.
 
 ## Phase 3: Production Integrations
 

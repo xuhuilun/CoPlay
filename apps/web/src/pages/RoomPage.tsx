@@ -41,6 +41,7 @@ export function RoomPage() {
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [volume, setVolume] = useState(1);
+  const [switchInvite, setSwitchInvite] = useState<{ playerState: PlayerState; videoTitle: string } | null>(null);
 
   useEffect(() => {
     if (!roomId) {
@@ -121,7 +122,11 @@ export function RoomPage() {
     socket.on("video:switch-event", (state: PlayerState) => {
       void handleIncomingPlayerState(state);
       setSwitchVideoId("");
+      setSwitchInvite(null);
       setNotice("房主切换了视频，已加载新片源");
+    });
+    socket.on("video:switch-invite", (payload: { playerState: PlayerState }) => {
+      void presentSwitchInvite(payload.playerState);
     });
     socket.on("room:error", (payload: { message: string }) => setNotice(payload.message));
 
@@ -143,6 +148,35 @@ export function RoomPage() {
       return;
     }
     applyPlayerState(state);
+  }
+
+  async function presentSwitchInvite(state: PlayerState) {
+    if (state.videoId === currentVideoIdRef.current) {
+      return;
+    }
+    let videoTitle = "新片源";
+    try {
+      videoTitle = (await api.video(state.videoId)).title;
+    } catch {
+      videoTitle = "新片源";
+    }
+    setSwitchInvite({ playerState: state, videoTitle });
+    setNotice("房主切换了视频，可选择是否跟随");
+  }
+
+  function followSwitchInvite() {
+    const invite = switchInvite;
+    if (!invite) {
+      return;
+    }
+    setSwitchInvite(null);
+    void handleIncomingPlayerState(invite.playerState);
+    setNotice("已跟随房主切换的视频");
+  }
+
+  function dismissSwitchInvite() {
+    setSwitchInvite(null);
+    setNotice("已保持当前观看");
   }
 
   function applyPlayerState(state: PlayerState) {
@@ -422,6 +456,21 @@ export function RoomPage() {
               </select>
               <button onClick={switchRoomVideo} type="button" title="切换影片" disabled={!canSwitchVideo}>
                 <Clapperboard size={18} />
+              </button>
+            </div>
+          </div>
+        )}
+        {switchInvite && (
+          <div className="switch-invite" role="alert">
+            <p>
+              房主切换到《{switchInvite.videoTitle}》，是否跟随？
+            </p>
+            <div>
+              <button className="primary-button" onClick={followSwitchInvite} type="button">
+                跟随
+              </button>
+              <button onClick={dismissSwitchInvite} type="button">
+                保持
               </button>
             </div>
           </div>

@@ -617,6 +617,40 @@ main {
   padding: 0 10px;
 }
 
+.switch-invite {
+  display: grid;
+  gap: 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: rgba(96, 165, 250, 0.14);
+  padding: 13px 14px;
+}
+
+.switch-invite p {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.switch-invite div {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.switch-invite button {
+  min-height: 40px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text);
+  cursor: pointer;
+}
+
+.switch-invite .primary-button {
+  border: 0;
+}
+
 .invite-fallback {
   min-height: 86px;
   resize: vertical;

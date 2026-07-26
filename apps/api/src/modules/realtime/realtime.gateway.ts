@@ -1,6 +1,7 @@
 import type { Server as HttpServer } from "node:http";
 import { Server, type Socket } from "socket.io";
 import { z } from "zod";
+import type { RoomType } from "../rooms/room.model.js";
 import type { RoomStore } from "../rooms/room.store.js";
 import type { PresenceStore } from "./presence.store.js";
 
@@ -165,7 +166,18 @@ export function registerRealtimeGateway(
           socket.emit("room:error", { message: "Only host can switch video" });
           return;
         }
-        io.to(payload.roomId).emit("video:switch-event", room.playerState);
+        if (resolveVideoSwitchMode(room.type) === "broadcast") {
+          // Couple rooms share a single virtual player: everyone follows immediately.
+          io.to(payload.roomId).emit("video:switch-event", room.playerState);
+        } else {
+          // Screening rooms preserve member autonomy: the host follows its own switch,
+          // while other members are invited to decide whether to follow or stay.
+          socket.emit("video:switch-event", room.playerState);
+          socket.to(payload.roomId).emit("video:switch-invite", {
+            playerState: room.playerState,
+            hostGuestId: room.hostGuestId
+          });
+        }
       });
     });
   });
@@ -191,6 +203,20 @@ export function validateSyncRequestPayload(payload: unknown): SyncRequestPayload
 export function validateVideoSwitchPayload(payload: unknown): VideoSwitchPayload | undefined {
   const parsed = videoSwitchPayloadSchema.safeParse(payload);
   return parsed.success ? parsed.data : undefined;
+}
+
+export type VideoSwitchMode = "broadcast" | "invite";
+
+/**
+ * Decides how a host video switch reaches the other members of a room.
+ *
+ * - Couple rooms behave like one shared player, so the switch is broadcast and
+ *   applied to everyone immediately.
+ * - Screening rooms keep member autonomy, so other members receive an invite and
+ *   decide for themselves whether to follow the host or stay on the current video.
+ */
+export function resolveVideoSwitchMode(roomType: RoomType): VideoSwitchMode {
+  return roomType === "couple" ? "broadcast" : "invite";
 }
 
 export function createSocketEventLimiter(options: {

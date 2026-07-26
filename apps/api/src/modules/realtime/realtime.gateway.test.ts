@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   createSocketEventLimiter,
+  resolveVideoSwitchMode,
   validateJoinPayload,
   validatePlayerActionPayload,
   validateSyncRequestPayload,
@@ -85,6 +86,11 @@ test("realtime payload validators reject malformed player actions", () => {
     }),
     undefined
   );
+});
+
+test("video switch mode broadcasts for couples and invites for screenings", () => {
+  assert.equal(resolveVideoSwitchMode("couple"), "broadcast");
+  assert.equal(resolveVideoSwitchMode("screening"), "invite");
 });
 
 test("socket event limiter blocks events above the window limit", () => {
