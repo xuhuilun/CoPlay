@@ -16,8 +16,10 @@ import { GithubAuthProvider } from "./modules/auth/github.provider.js";
 import { registerAdminRoutes } from "./modules/admin/admin.routes.js";
 import { readCookie } from "./modules/auth/cookie.js";
 import { registerSessionRoutes } from "./modules/auth/session.routes.js";
-import { MemorySessionStore } from "./modules/auth/session.store.js";
-import { MemoryUserStore } from "./modules/auth/user.store.js";
+import { PrismaSessionStore } from "./modules/auth/prisma-session.store.js";
+import { PrismaUserStore } from "./modules/auth/prisma-user.store.js";
+import { MemorySessionStore, type SessionStore } from "./modules/auth/session.store.js";
+import { MemoryUserStore, type UserStore } from "./modules/auth/user.store.js";
 import { registerCacheJobGateway } from "./modules/cache-jobs/cache-job.gateway.js";
 import { CacheJobNotifier } from "./modules/cache-jobs/cache-job.notifier.js";
 import { CacheJobRepository } from "./modules/cache-jobs/cache-job.repository.js";
@@ -142,8 +144,10 @@ await registerHealthRoutes(app, {
 
 const SESSION_COOKIE = "coplay_session";
 const authStateStore = new MemoryAuthStateStore();
-const users = new MemoryUserStore();
-const sessions = new MemorySessionStore();
+// Auth stores use MySQL when the Prisma driver is on, so bans and sessions survive restarts;
+// otherwise they fall back to in-memory (dev / single-instance without a database).
+const users: UserStore = prisma ? new PrismaUserStore(prisma) : new MemoryUserStore();
+const sessions: SessionStore = prisma ? new PrismaSessionStore(prisma) : new MemorySessionStore();
 
 // Login is GitHub-only. WeChat/QQ QR sign-in was cut: 微信 网站应用 requires a company
 // entity, which an individual developer cannot obtain. The AuthProvider seam remains, so a

@@ -106,3 +106,32 @@ model RoomMember {
   @@unique([roomId, guestId])
   @@index([guestId])
 }
+
+model User {
+  id             String   @id @default(cuid())
+  provider       String   @db.VarChar(40)
+  providerUserId String   @db.VarChar(120)
+  displayName    String   @db.VarChar(120)
+  avatarUrl      String   @db.VarChar(512)
+  banned         Boolean  @default(false)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  sessions Session[]
+
+  @@unique([provider, providerUserId])
+  @@index([banned])
+}
+
+model Session {
+  // The id is an unguessable token minted by the app (randomUUID), not a sequential default.
+  id        String   @id @db.VarChar(191)
+  userId    String
+  createdAt DateTime @default(now())
+  expiresAt DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+}
