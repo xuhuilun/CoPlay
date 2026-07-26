@@ -171,6 +171,7 @@ await registerAuthRoutes(app, authRegistry);
 await registerSessionRoutes(app, { sessions, users, sessionCookieName: SESSION_COOKIE });
 await registerAdminRoutes(app, {
   jobs: cacheJobs,
+  videos,
   access: {
     sessions,
     users,

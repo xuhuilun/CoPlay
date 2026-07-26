@@ -58,6 +58,9 @@ export async function registerGithubCallbackRoutes(app: FastifyInstance, deps: G
         displayName: identity.displayName,
         avatarUrl: identity.avatarUrl
       });
+      if (user.banned) {
+        return reply.code(403).send({ error: "banned" });
+      }
       const session = await deps.sessions.create(user.id);
       const maxAgeSeconds = Math.floor((Date.parse(session.expiresAt) - Date.now()) / 1000);
       reply.header("set-cookie", serializeCookie(deps.sessionCookieName, session.id, { maxAgeSeconds }));

@@ -31,7 +31,8 @@ export async function registerSessionRoutes(app: FastifyInstance, deps: SessionR
       return { user: null };
     }
     const user = await deps.users.findById(session.userId);
-    return { user: user ? toPublicUser(user) : null };
+    // A banned user's session resolves to no user — their authenticated identity is revoked.
+    return { user: user && !user.banned ? toPublicUser(user) : null };
   });
 
   app.post("/api/auth/logout", async (request, reply) => {

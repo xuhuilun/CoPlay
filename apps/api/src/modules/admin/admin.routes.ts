@@ -1,8 +1,11 @@
 import type { FastifyInstance } from "fastify";
+import { z } from "zod";
 import { parseRouteId } from "../../shared/rest-params.js";
 import type { CacheJobStatus } from "../cache-jobs/cache-job.model.js";
 import type { CacheJobStore } from "../cache-jobs/cache-job.store.js";
+import type { VideoStore } from "../videos/video.store.js";
 import { requireAdmin, type AdminAccess } from "./admin.access.js";
+import { computeUsage } from "./admin.usage.js";
 
 const CACHE_JOB_STATUSES: CacheJobStatus[] = [
   "queued",
@@ -15,8 +18,11 @@ const CACHE_JOB_STATUSES: CacheJobStatus[] = [
 
 const MAX_LIST_LIMIT = 200;
 
+const banBodySchema = z.object({ banned: z.boolean() });
+
 export type AdminRoutesDeps = {
   jobs: CacheJobStore;
+  videos: VideoStore;
   access: AdminAccess;
 };
 
@@ -66,6 +72,29 @@ export async function registerAdminRoutes(app: FastifyInstance, deps: AdminRoute
         return reply.conflict("Cache job cannot be cancelled (missing or already finished)");
       }
       return job;
+    });
+
+    admin.get("/api/admin/users", async () => ({ items: await deps.access.users.list() }));
+
+    admin.post<{ Params: { id: string } }>("/api/admin/users/:id/ban", async (request, reply) => {
+      const id = parseRouteId(request.params.id, reply);
+      if (!id) {
+        return;
+      }
+      const body = banBodySchema.safeParse(request.body);
+      if (!body.success) {
+        return reply.badRequest("banned must be a boolean");
+      }
+      const user = await deps.access.users.setBanned(id, body.data.banned);
+      if (!user) {
+        return reply.notFound("User not found");
+      }
+      return user;
+    });
+
+    admin.get("/api/admin/usage", async () => {
+      const [jobs, videos] = await Promise.all([deps.jobs.list(), deps.videos.list()]);
+      return computeUsage(jobs, videos.length);
     });
   });
 }

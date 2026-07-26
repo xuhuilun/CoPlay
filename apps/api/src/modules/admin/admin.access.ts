@@ -29,7 +29,8 @@ export async function requireAdmin(
   const sessionId = readCookie(request.headers.cookie, access.sessionCookieName);
   const session = sessionId ? await access.sessions.find(sessionId) : undefined;
   const user = session ? await access.users.findById(session.userId) : undefined;
-  if (!user) {
+  // A banned user's identity is revoked, so treat them as unauthenticated.
+  if (!user || user.banned) {
     await reply.code(401).send({ error: "unauthenticated" });
     return undefined;
   }

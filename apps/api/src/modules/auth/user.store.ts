@@ -7,6 +7,7 @@ export type User = {
   providerUserId: string;
   displayName: string;
   avatarUrl: string;
+  banned: boolean;
   createdAt: string;
 };
 
@@ -21,6 +22,8 @@ export type UpsertUserInput = {
 export interface UserStore {
   upsertByProvider(input: UpsertUserInput): Awaitable<User>;
   findById(id: string): Awaitable<User | undefined>;
+  list(): Awaitable<User[]>;
+  setBanned(id: string, banned: boolean): Awaitable<User | undefined>;
 }
 
 export class MemoryUserStore implements UserStore {
@@ -35,7 +38,7 @@ export class MemoryUserStore implements UserStore {
     if (existingId) {
       const existing = this.usersById.get(existingId);
       if (existing) {
-        // Refresh the mutable profile fields on each login without minting a new identity.
+        // Refresh the mutable profile fields on each login, preserving the ban flag.
         const updated: User = { ...existing, displayName: input.displayName, avatarUrl: input.avatarUrl };
         this.usersById.set(existing.id, updated);
         return updated;
@@ -47,6 +50,7 @@ export class MemoryUserStore implements UserStore {
       providerUserId: input.providerUserId,
       displayName: input.displayName,
       avatarUrl: input.avatarUrl,
+      banned: false,
       createdAt: this.clock()
     };
     this.usersById.set(user.id, user);
@@ -56,6 +60,20 @@ export class MemoryUserStore implements UserStore {
 
   findById(id: string): User | undefined {
     return this.usersById.get(id);
+  }
+
+  list(): User[] {
+    return [...this.usersById.values()].sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+  }
+
+  setBanned(id: string, banned: boolean): User | undefined {
+    const user = this.usersById.get(id);
+    if (!user) {
+      return undefined;
+    }
+    const updated: User = { ...user, banned };
+    this.usersById.set(id, updated);
+    return updated;
   }
 }
 

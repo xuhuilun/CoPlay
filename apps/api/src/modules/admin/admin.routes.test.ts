@@ -12,7 +12,7 @@ const SESSION_COOKIE = "coplay_session";
 const ADMIN_GITHUB_ID = "42";
 
 test("isAdminUser only accepts allowlisted github ids", () => {
-  const base = { id: "u1", displayName: "A", avatarUrl: "", createdAt: "" };
+  const base = { id: "u1", displayName: "A", avatarUrl: "", banned: false, createdAt: "" };
   assert.equal(isAdminUser({ ...base, provider: "github", providerUserId: "42" }, ["42"]), true);
   assert.equal(isAdminUser({ ...base, provider: "github", providerUserId: "99" }, ["42"]), false);
   assert.equal(isAdminUser({ ...base, provider: "wechat", providerUserId: "42" }, ["42"]), false);
@@ -88,6 +88,60 @@ test("admin can cancel an active job and retry a cancelled one", async () => {
   await app.close();
 });
 
+test("admin lists users and can ban one", async () => {
+  const { app, users, member, adminCookie } = await createAdminTestApp();
+
+  const listed = await app.inject({ method: "GET", url: "/api/admin/users", headers: { cookie: adminCookie } });
+  assert.equal(listed.statusCode, 200);
+  assert.ok(listed.json().items.length >= 2);
+
+  const banned = await app.inject({
+    method: "POST",
+    url: `/api/admin/users/${member.id}/ban`,
+    headers: { cookie: adminCookie },
+    payload: { banned: true }
+  });
+  assert.equal(banned.statusCode, 200);
+  assert.equal(banned.json().banned, true);
+  assert.equal(users.findById(member.id)?.banned, true);
+
+  await app.close();
+});
+
+test("banning the admin revokes their own admin access", async () => {
+  const { app, admin, adminCookie } = await createAdminTestApp();
+
+  await app.inject({
+    method: "POST",
+    url: `/api/admin/users/${admin.id}/ban`,
+    headers: { cookie: adminCookie },
+    payload: { banned: true }
+  });
+
+  // The same session is now treated as unauthenticated.
+  const after = await app.inject({ method: "GET", url: "/api/admin/cache-jobs", headers: { cookie: adminCookie } });
+  assert.equal(after.statusCode, 401);
+
+  await app.close();
+});
+
+test("admin usage aggregates jobs by status and library size", async () => {
+  const { app, jobs, adminCookie } = await createAdminTestApp();
+  jobs.create("https://www.bilibili.com/video/BV1aa411c7m1", "ip:1");
+  const c = jobs.create("https://www.bilibili.com/video/BV1aa411c7m2", "ip:2");
+  jobs.cancel(c.id);
+
+  const usage = await app.inject({ method: "GET", url: "/api/admin/usage", headers: { cookie: adminCookie } });
+  assert.equal(usage.statusCode, 200);
+  const body = usage.json();
+  assert.equal(body.jobs.total, 2);
+  assert.equal(body.jobs.byStatus.cancelled, 1);
+  assert.equal(body.jobs.byStatus.queued, 1);
+  assert.equal(body.topSubmitters.length, 2);
+
+  await app.close();
+});
+
 async function createAdminTestApp() {
   const app = Fastify();
   const users = new MemoryUserStore();
@@ -112,9 +166,10 @@ async function createAdminTestApp() {
   await app.register(sensible);
   await registerAdminRoutes(app, {
     jobs,
+    videos: new StubVideoStore(),
     access: { sessions, users, sessionCookieName: SESSION_COOKIE, adminGithubIds: [ADMIN_GITHUB_ID] }
   });
-  return { app, jobs, adminCookie, memberCookie };
+  return { app, jobs, users, sessions, admin, member, adminCookie, memberCookie };
 }
 
 class StubVideoStore {
