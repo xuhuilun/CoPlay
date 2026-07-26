@@ -18,6 +18,7 @@ import { PageState } from "../components/PageState.js";
 export function RoomPage() {
   const { roomId } = useParams();
   const videoRef = useRef<HTMLVideoElement | null>(null);
+  const theaterRef = useRef<HTMLDivElement | null>(null);
   const socketRef = useRef<Socket | null>(null);
   const currentVideoIdRef = useRef<string | null>(null);
   const pendingPlayerStateRef = useRef<PlayerState | null>(null);
@@ -366,6 +367,20 @@ export function RoomPage() {
     emitPlayerAction("seek");
   }
 
+  // Fullscreen the theater wrapper (not the bare <video>) so the custom control
+  // overlay stays visible and usable in fullscreen; toggling exits when active.
+  function toggleFullscreen() {
+    const theater = theaterRef.current;
+    if (!theater) {
+      return;
+    }
+    if (document.fullscreenElement) {
+      void document.exitFullscreen();
+    } else {
+      void theater.requestFullscreen();
+    }
+  }
+
   function setPlayerVolume(value: number) {
     const player = videoRef.current;
     if (!player) {
@@ -397,6 +412,7 @@ export function RoomPage() {
   return (
     <section className="room-page">
       <div
+        ref={theaterRef}
         className={controlsVisible ? "theater controls-visible" : "theater controls-hidden"}
         onMouseMove={revealControls}
         onMouseLeave={hideControlsNow}
@@ -487,7 +503,7 @@ export function RoomPage() {
               <option value="1.5">1.5x</option>
               <option value="2">2x</option>
             </select>
-            <button onClick={() => void videoRef.current?.requestFullscreen()} title="全屏">
+            <button onClick={toggleFullscreen} title="全屏">
               <Maximize size={18} />
             </button>
           </div>
